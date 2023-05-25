@@ -1,0 +1,105 @@
+name: Build Peerplay
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - '*'
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: 16
+
+      - name: Install dependencies
+        run: |
+          npm install
+          mkdir artifacts
+      - name: Download Peerplay CR Client Artifact
+        run: |
+          cd artifacts
+          curl -sLJO "https://nightly.link/peerplay-project/peerplay_CR_client/workflows/build/peerplay-legacy/peerplay-cr-client-build.zip"
+          cd ..
+      - name: Download Peerplay CR Server Artifact
+        run: |
+          cd artifacts
+          curl -sLJO "https://nightly.link/peerplay-project/peerplay_CR_server/workflows/build/master/peerplay-cr-server-build.zip"
+          cd ..
+      - name: Extract Peerplay CR Client
+        run: |
+          mkdir peerplay_CR_client
+          unzip artifacts/peerplay-cr-client-build -d peerplay_CR_client
+          cp -r peerplay_CR_client/software resources/peerplay_tools/cr_client
+      - name: Extract Peerplay CR Server
+        run: |
+          mkdir peerplay_CR_server
+          cd peerplay_CR_server
+          mkdir software
+          cd ..
+          unzip artifacts/peerplay-cr-server-build -d peerplay_CR_server
+          cp -r peerplay_CR_server resources/peerplay_tools/cr_server/software
+
+      - name: Download Latest Switch Lan play Releases
+        run: |
+          mkdir resources/peerplay_tools/lan_play/software
+          mkdir resources/peerplay_tools/lan_play/software/macos
+          curl -sL -o resources/peerplay_tools/lan_play/software/macos/lan-play https://github.com/spacemeowx2/switch-lan-play/releases/latest/download/lan-play-macos
+          mkdir resources/peerplay_tools/lan_play/software/windows
+          curl -sL -o resources/peerplay_tools/lan_play/software/windows/lan-play.exe https://github.com/spacemeowx2/switch-lan-play/releases/latest/download/lan-play-win64.exe
+          mkdir resources/peerplay_tools/lan_play/software/linux
+          curl -sL -o resources/peerplay_tools/lan_play/software/linux/lan-play https://github.com/spacemeowx2/switch-lan-play/releases/latest/download/lan-play-linux
+
+      - name: Build application
+        run: npm run build
+      ## Windows
+      - name: Find artifact file (Windows)
+        id: select_file_windows
+        if: matrix.os == 'windows-latest'
+        run: |
+            $artifact_file = Get-ChildItem -Path dist -Filter "*.exe" -File | Select-Object -First 1
+            echo "::set-output name=artifact_file::$($artifact_file.FullName)"
+      - name: Upload artifact (Windows)
+        uses: actions/upload-artifact@v2
+        if: matrix.os == 'windows-latest'
+        with:
+            name: Peerplay-Setup-${{ matrix.os }}
+            path: ${{ steps.select_file_windows.outputs.artifact_file }}
+            if-no-files-found: error
+      # Mac OS
+      - name: Find artifact file (MacOS)
+        id: select_file_macos
+        if: matrix.os == 'macos-latest'
+        run: |
+            artifact_file=$(find dist -name '*.dmg' -type f | head -n 1)
+            echo "::set-output name=artifact_file::$artifact_file"
+      - name: Upload artifact (Mac OS)
+        uses: actions/upload-artifact@v2
+        if: matrix.os == 'macos-latest'
+        with:
+            name: Peerplay-Setup-${{ matrix.os }}
+            path: ${{ steps.select_file_macos.outputs.artifact_file }}
+            if-no-files-found: error
+      # Linux
+      - name: Find artifact file (Linux)
+        id: select_file_linux
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+            artifact_file=$(find dist -name '*.AppImage' -type f | head -n 1)
+            echo "::set-output name=artifact_file::$artifact_file"
+      - name: Upload artifact (Linux)
+        uses: actions/upload-artifact@v2
+        if: matrix.os == 'ubuntu-latest'
+        with:
+            name: Peerplay-Setup-Linux
+            path: ${{ steps.select_file_linux.outputs.artifact_file }}
+            if-no-files-found: error
