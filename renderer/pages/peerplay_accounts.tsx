@@ -5,7 +5,9 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
-import { Field, useFormik } from 'formik';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import Store from 'electron-store';
 import axios from 'axios';
@@ -29,12 +31,14 @@ import {
     Radio,
     FormControlLabel,
     FormControl,
-    FormLabel
+    FormLabel,
+    InputAdornment
 } from '@mui/material';
 let Reset_Key = ""
 let Procedure = ""
 let Error_Code = ""
 let Error_Description = ""
+let Error_Solution = ""
 let req_email = ""
 let req_username = ""
 let console_ip: ConsoleList = {
@@ -120,7 +124,26 @@ const accountStore = new Store<AccountData>({
 
 export default function Page(props) {
     const [value, setValue] = React.useState(0);
-
+    const [showLoginPassword, setShowLoginPassword] = React.useState(false);
+    const handleClickShowLoginPassword = () => setShowLoginPassword((show) => !show);
+    const handleMouseDownLoginPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
+        event.preventDefault();
+    };
+    const [showRegisterPassword, setShowRegisterPassword] = React.useState(false);
+    const handleClickShowRegisterPassword = () => setShowRegisterPassword((show) => !show);
+    const handleMouseDownRegisterPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
+        event.preventDefault();
+    };
+    const [showResetOldPassword, setShowResetOldPassword] = React.useState(false);
+    const handleClickShowResetOldPassword = () => setShowResetOldPassword((show) => !show);
+    const handleMouseDownResetOldPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
+        event.preventDefault();
+    };
+    const [showResetNewPassword, setShowResetNewPassword] = React.useState(false);
+    const handleClickShowResetNewPassword = () => setShowResetNewPassword((show) => !show);
+    const handleMouseDownResetNewPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
+        event.preventDefault();
+    };
     const handleChange = (event: React.SyntheticEvent, newValue: number) => {
         setValue(newValue);
     };
@@ -132,6 +155,7 @@ export default function Page(props) {
     };
 
     async function handleGetIPFromAccount(email: string, password: string, username: string) {
+        Procedure = 'La Recuperation des Parametres IP'
         const cr_client_data: CRClientData = cr_client_store.get('config');
         const url = `http://${cr_client_data.cr_server_address_api}/auth/login`;
         const params = {
@@ -155,9 +179,71 @@ export default function Page(props) {
                         console_gateway = response.data.console_gateway
                         handleClickIPListDialog()
                     }
-                } catch (error) { }
+                } catch (error) {
+                    if (error.response) {
+                        if (error.response.status === 401) {
+                            switch (error.response.data.CODE) {
+                                case "INVALID_JWT":
+                                    Error_Code = 'INVALID_JWT'
+                                    Error_Description = "Le JWT Fourni est Invalide"
+                                    Error_Solution = "Veuillez fournir un JWT valide pour ce serveur"
+                                    break;
+                                case "INVALID_JWT_SIGNATURE":
+                                    Error_Code = 'INVALID_JWT_SIGNATURE'
+                                    Error_Description = "La Signature de ce JWT est Invalide, A Expiré ou Appartient a un autre serveur"
+                                    Error_Solution = "Veuillez vous connecter avec votre compte pour obtenir un JWT valide pour ce serveur"
+                                    break;
+                            }
+                        }
+                        else {
+                            Error_Code = 'ERROR_500'
+                            Error_Description = "Le Serveur de destination a repondu avec une erreur 500"
+                            Error_Solution = "Veuillez contactez l'hote du serveur auquel vous etes relié ou le support de peerplay (si vous utilisez le serveur integré a l'application)"
+                        }
+                    } else {
+                        Error_Code = 'CONNECTION_ERROR'
+                        Error_Description = "La connexion au Serveur Peerplay CR a Échoué."
+                        Error_Solution = "Veuillez vérifier votre connexion internet, si elle n'est pas en cause contactez l'hôte du serveur auquel vous etes relié ou le support de Peerplay (si vous utilisez le serveur integré a l'application et que ce dernier est bien ouvert)"
+                    }
+                    handleClickErrorDialog();
+                }
             }
-        } catch (error) { }
+        } catch (error) {
+            if (error.response) {
+                if (error.response.status === 401) {
+                    switch (error.response.data.code) {
+                        case "ACCOUNT_NOT_FOUND":
+                            Error_Code = 'ACCOUNT_NOT_FOUND'
+                            Error_Description = "Le compte n'a pas été trouvé et n'est pas accessible depuis le serveur ciblé"
+                            Error_Solution = "Veuillez Essayer de changer de serveur ou réessayer plus tard"
+                            break;
+                        case "INCORRECT_PASSWORD":
+                            Error_Code = 'INCORRECT_PASSWORD'
+                            Error_Description = "Le Mot de Passe du compte est incorrect (Il est possible que cette sauvegarde ne soit pas a jour)"
+                            Error_Solution = "Veuillez vous réauthentifier ou réinitialiser votre mot de passe si vous n'avez"
+                            break;
+                        default:
+                            Error_Code = 'UNKNOWN_ERROR'
+                            Error_Description = "L'Erreur que vous rencontrez est inconnue."
+                            Error_Solution = "Veuillez contacter le support de Peerplay"
+                            break;
+                    }
+                } else if (error.response.status === 400) {
+                    Error_Code = 'BAD_REQUEST'
+                    Error_Description = "Des éléments requis sont manquants"
+                    Error_Solution = "Veuillez vérifier que tous les champs necessaires sont remplis"
+                } else {
+                    Error_Code = 'ERROR_500'
+                    Error_Description = "Le Serveur de destination a répondu avec une erreur 500."
+                    Error_Solution = "Veuillez contactez l'hôte du serveur ou le support de Peerplay (si vous êtes l'hôte)"
+                }
+            } else {
+                Error_Code = 'CONNECTION_ERROR'
+                Error_Description = "La connexion au Serveur Peerplay CR a Échoué."
+                Error_Solution = "Veuillez vérifier votre connexion internet, si elle n'est pas en cause contactez l'hôte du serveur auquel vous êtes relié ou le support de Peerplay (si vous utilisez le serveur integré a l'application et que celui çi est bien ouvert)"
+            }
+            handleClickErrorDialog();
+        }
     }
 
     // Fonction pour ajouter un compte à la liste
@@ -218,25 +304,35 @@ export default function Page(props) {
                     handleClickRegisterDialog();
                 }
             } catch (error) {
-                if (error.response.status === 400) {
-                    switch (error.response.data.code) {
-                        case "ACCOUNT_ALREADY_EXISTS":
-                            Error_Code = 'ACCOUNT_ALREADY_EXISTS'
-                            Error_Description = "Un compte est deja crée avec cette adresse mail, veuillez vous connecter ou reinitialiser votre mot de passe"
-                            break;
-                        case "PASSWORD_MISSMATCH":
-                            Error_Code = 'PASSWORD_MISSMATCH'
-                            Error_Description = "Le Combo Mot de passe / Confirmation de mot de passe ne correspond pas"
-                            break;
-                        default:
-                            Error_Code = 'UNKNOWN_ERROR'
-                            Error_Description = "L'Erreur que vous rencontrez est inconnue, veuillez contacter le support de peerplay"
-                            break;
+                if (error.response) {
+                    if (error.response.status === 400) {
+                        switch (error.response.data.code) {
+                            case "ACCOUNT_ALREADY_EXISTS":
+                                Error_Code = 'ACCOUNT_ALREADY_EXISTS'
+                                Error_Description = "Un compte est deja crée avec cette adresse mail"
+                                Error_Solution = "Veuillez vous connecter ou reinitialiser votre mot de passe"
+                                break;
+                            case "PASSWORD_MISSMATCH":
+                                Error_Code = 'PASSWORD_MISSMATCH'
+                                Error_Description = "Le Combo Mot de passe / Confirmation de mot de passe ne correspond pas"
+                                Error_Solution = "Veuillez verifier que les deux champs sont identiques"
+                                break;
+                            default:
+                                Error_Code = 'UNKNOWN_ERROR'
+                                Error_Description = "L'Erreur que vous rencontrez est inconnue"
+                                Error_Solution = "Veuillez contacter le support de Peerplay"
+                                break;
+                        }
                     }
-                }
-                else {
+                    else {
+                        Error_Code = 'ERROR_500'
+                        Error_Description = "Le Serveur de destination a repondu avec une erreur 500"
+                        Error_Solution = "Veuillez contactez l'hote du serveur auquel vous etes relié ou le support de peerplay (si vous utilisez le serveur integré a l'application)"
+                    }
+                } else {
                     Error_Code = 'CONNECTION_ERROR'
-                    Error_Description = "La connexion au Serveur Peerplay CR a Echouée ou le Serveur de destination a repondu avec une erreur 500, veuillez verifier votre connexion internet ou contactez l'hote du serveur ou le support de peerplay (si vous etes l'hote)"
+                    Error_Description = "La connexion au Serveur Peerplay CR a Échoué."
+                    Error_Solution = "Veuillez vérifier votre connexion internet, si elle n'est pas en cause contactez l'hôte du serveur auquel vous etes relié ou le support de Peerplay (si vous utilisez le serveur integré a l'application et que ce dernier est bien ouvert)"
                 }
                 handleClickErrorDialog();
             }
@@ -264,37 +360,45 @@ export default function Page(props) {
                     handleClickConnectDialog();
                 }
             } catch (error) {
-                if (error.response.status === 401) {
-                    switch (error.response.data.code) {
-                        case "ACCOUNT_NOT_FOUND":
-                            Error_Code = 'ACCOUNT_NOT_FOUND'
-                            Error_Description = "Le compte n'a pas été trouvé"
-                            break;
-                        case "INCORRECT_PASSWORD":
-                            Error_Code = 'INCORRECT_PASSWORD'
-                            Error_Description = "Le Mot de Passe est Incorrect"
-                            break;
-                        default:
-                            Error_Code = 'UNKNOWN_ERROR'
-                            Error_Description = "L'Erreur que vous rencontrez est inconnue, veuillez contacter le support de peerplay"
-                            break;
+                if (error.response) {
+                    if (error.response.status === 401) {
+                        switch (error.response.data.code) {
+                            case "ACCOUNT_NOT_FOUND":
+                                Error_Code = 'ACCOUNT_NOT_FOUND'
+                                Error_Description = "Le compte n'a pas été trouvé"
+                                Error_Solution = "Veuillez vérifier que l'adresse mail rentrée est correcte"
+                                break;
+                            case "INCORRECT_PASSWORD":
+                                Error_Code = 'INCORRECT_PASSWORD'
+                                Error_Description = "Le Mot de Passe est Incorrect"
+                                Error_Solution = "Veuillez vérifier que le mot de passe rentré est correct"
+                                break;
+                            default:
+                                Error_Code = 'UNKNOWN_ERROR'
+                                Error_Description = "L'Erreur que vous rencontrez est inconnue."
+                                Error_Solution = "Veuillez contacter le support de Peerplay"
+                                break;
+                        }
+                    } else if (error.response.status === 400) {
+                        Error_Code = 'BAD_REQUEST'
+                        Error_Description = "Des éléments requis sont manquants"
+                        Error_Solution = "Veuillez vérifier que tous les champs necessaires sont remplis"
+                    } else {
+                        Error_Code = 'ERROR_500'
+                        Error_Description = "Le Serveur de destination a répondu avec une erreur 500."
+                        Error_Solution = "Veuillez contactez l'hôte du serveur ou le support de Peerplay (si vous êtes l'hôte)"
                     }
                 } else {
-                    if (error.response.status === 400) {
-                        Error_Code = 'BAD_REQUEST'
-                        Error_Description = "Des elements requis sont manquant, veuillez verifier si les informations rentrés sont correctes"
-                    }
-                    else {
-                        Error_Code = 'CONNECTION_ERROR'
-                        Error_Description = "La connexion au Serveur Peerplay CR a Echouée ou le Serveur de destination a repondu avec une erreur 500, veuillez verifier votre connexion internet ou contactez l'hote du serveur ou le support de peerplay (si vous etes l'hote)"
-                    }
+                    Error_Code = 'CONNECTION_ERROR'
+                    Error_Description = "La connexion au Serveur Peerplay CR a Échoué."
+                    Error_Solution = "Veuillez vérifier votre connexion internet, si elle n'est pas en cause contactez l'hôte du serveur auquel vous êtes relié ou le support de Peerplay (si vous utilisez le serveur integré a l'application et que celui çi est bien ouvert)"
                 }
                 handleClickErrorDialog();
             }
         },
     });
     const reset_formik = useFormik({
-        initialValues: { email: "", reset_credentials: "", method: "", new_password: "", new_password_confirm: "" },
+        initialValues: { email: "", reset_credentials: "", method: "reset_key", new_password: "", new_password_confirm: "" },
         validationSchema: Yup.object().shape({
             email: Yup.string().email("Please enter a correct email address").required("Please enter a correct email address"),
             method: Yup.string().required("Please select a method"),
@@ -323,36 +427,61 @@ export default function Page(props) {
                 const response = await axios.post(url, null, { params: params });
                 if (response.status === 200 && response.data.status === 'SUCCESS') {
                     Reset_Key = response.data.account_data.newResetKey
+                    try {
+                    // Login for update Account Storage
+                    const url2 = `http://${cr_client_data.cr_server_address_api}/auth/login`;
+                    const params2 = {
+                        email: values.email,
+                        password: values.new_password
+                    };
+                        const response2 = await axios.post(url2, null, { params: params2 });
+                        if (response2.status === 200) {
+                            const responseData2 = response2.data;
+                            storeAddAccount({ username: responseData2.username, email: values.email, password: values.new_password });
+                        }
+                    } catch (error) {}
                     handleClickResetDialog()
                 } else {
                     Error_Code = 'UNEXPECTED_RESPONSE'
-                    Error_Description = "La Réponse que vous rencontrez est inconnue, veuillez contacter le support de peerplay"
+                    Error_Description = "La Réponse que vous rencontrez est non prévue"
+                    Error_Solution = "Veuillez contacter le support de Peerplay"
                     handleClickErrorDialog()
                 }
             } catch (error) {
-                if (error.response.status === 401) {
-                    switch (error.response.data.code) {
-                        case 'ACCOUNT_NOT_FOUND':
-                            Error_Code = 'ACCOUNT_NOT_FOUND'
-                            Error_Description = "Le compte n'a pas été trouvé"
-                            break;
-                        case 'INCORRECT_RESET_CREDENTIALS':
-                            Error_Code = 'INCORRECT_RESET_CREDENTIALS'
-                            Error_Description = "Les informations demandées sont incorrectes"
-                            break;
-                        default:
-                            Error_Code = 'UNKNOWN_ERROR'
-                            Error_Description = "L'Erreur que vous rencontrez est inconnue, veuillez contacter le support de peerplay"
+                if (error.response) {
+                    if (error.response.status === 401) {
+                        switch (error.response.data.code) {
+                            case 'ACCOUNT_NOT_FOUND':
+                                Error_Code = 'ACCOUNT_NOT_FOUND'
+                                Error_Description = "Le compte n'a pas été trouvé"
+                                Error_Solution = "Veuillez verifier si les informations rentrés sont correctes"
+                                break;
+                            case 'INCORRECT_RESET_CREDENTIALS':
+                                Error_Code = 'INCORRECT_RESET_CREDENTIALS'
+                                Error_Description = "Les informations demandées sont incorrectes"
+                                Error_Solution = "Veuillez verifier si les informations rentrés sont correctes et assurez vous d'avoir selectionné la bonne méthode"
+                                break;
+                            default:
+                                Error_Code = 'UNKNOWN_ERROR'
+                                Error_Description = "L'Erreur que vous rencontrez est inconnue"
+                                Error_Solution = "Veuillez contacter le support de Peerplay"
+                        }
+                    } else {
+                        if (error.response.status === 400) {
+                            Error_Code = 'BAD_REQUEST'
+                            Error_Description = "Des elements requis sont manquants"
+                            Error_Solution = "Veuillez verifier si les informations rentrés sont correctes"
+                        }
+                        else {
+                            Error_Code = 'ERROR_500'
+                            Error_Description = "Le Serveur de destination a repondu avec une erreur 500.",
+                            Error_Solution = "Veuillez contactez l'hote du serveur auquel vous tentez de vous connecter ou le support de peerplay (si vous utilisez le serveur integré a l'application)"
+                        }
                     }
                 } else {
-                    if (error.response.status === 400) {
-                        Error_Code = 'BAD_REQUEST'
-                        Error_Description = "Des elements requis sont manquant, veuillez verifier si les informations rentrés sont correctes"
-                    }
-                    else {
-                        Error_Code = 'CONNECTION_ERROR'
-                        Error_Description = "La connexion au Serveur Peerplay CR a Echouée ou le Serveur de destination a repondu avec une erreur 500, veuillez verifier votre connexion internet ou contactez l'hote du serveur ou le support de peerplay (si vous etes l'hote)"
-                    }
+                    Error_Code = 'CONNECTION_ERROR'
+                    Error_Description = "La connexion au Serveur Peerplay CR a Échoué."
+                    Error_Solution = "Veuillez vérifier votre connexion internet, si elle n'est pas en cause contactez l'hôte du serveur auquel vous etes relié ou le support de Peerplay (si vous utilisez le serveur integré a l'application)"
                 }
                 handleClickErrorDialog();
             }
@@ -538,9 +667,9 @@ export default function Page(props) {
                 </DialogActions>
             </Dialog>
             <Dialog maxWidth="md" open={openConnectDialog} onClose={handleCloseConnectDialog}>
-                <DialogTitle>Connecté</DialogTitle>
+                <DialogTitle>Authentifié</DialogTitle>
                 <DialogContent>
-                    <DialogContentText>{"Vous etes Authentifié avec Succés, ajout du profil coté client"}</DialogContentText>
+                    <DialogContentText>{"Vous etes Authentifié avec Succés, enregistrement du profil coté client"}</DialogContentText>
                 </DialogContent>
                 <DialogActions>
                     <Button color="primary" onClick={handleCloseConnectDialog}>
@@ -549,16 +678,16 @@ export default function Page(props) {
                 </DialogActions>
             </Dialog>
             <Dialog maxWidth="md" open={openRegisterDialog} onClose={handleCloseRegisterDialog}>
-                <DialogTitle>Inscrit</DialogTitle>
+                <DialogTitle>Inscription Terminé</DialogTitle>
                 <DialogContent>
-                    <DialogContentText>{"l'Inscription s'est bien déroulé, ajout du profil coté client"}</DialogContentText>
+                    <DialogContentText>{"Inscription Terminé avec succés, enregistrement du profil sur l'application"}</DialogContentText>
                 </DialogContent>
                 <DialogContent>
                     <DialogContentText>{"Voici des informations importantes concernant votre Compte"}</DialogContentText>
                     <DialogContentText>{"Clé de Réinitialisation : " + Reset_Key}</DialogContentText>
                 </DialogContent>
                 <DialogContent>
-                    <DialogContentText>{"Veillez a Bien Conserver Cette Clé (Elle vous sera demandé pour réinitialiser votre mot de passe si vous l'avez perdu"}</DialogContentText>
+                    <DialogContentText>{"Veillez a Bien Conserver Cette Clé (Elle vous sera demandé pour réinitialiser ou changer votre mot de passe)"}</DialogContentText>
                 </DialogContent>
                 <DialogActions>
                     <Button color="primary" onClick={handleCloseRegisterDialog}>
@@ -576,7 +705,7 @@ export default function Page(props) {
                     <DialogContentText>{Reset_Key}</DialogContentText>
                 </DialogContent>
                 <DialogContent>
-                    <DialogContentText>{"Veillez a Bien Conserver Cette Clé (Elle vous sera demandé pour réinitialiser votre mot de passe si vous le perdez a nouveau"}</DialogContentText>
+                    <DialogContentText>{"Veillez a Bien Conserver Cette Clé (Elle vous sera demandé pour réinitialiser ou changer votre mot de passe)"}</DialogContentText>
                 </DialogContent>
                 <DialogActions>
                     <Button color="primary" onClick={handleCloseResetDialog}>
@@ -591,7 +720,7 @@ export default function Page(props) {
                     <DialogContentText>{Error_Description}</DialogContentText>
                 </DialogContent>
                 <DialogContent>
-                    <DialogContentText>{"Veuillez Ressayer"}</DialogContentText>
+                <DialogContentText>{Error_Solution}</DialogContentText>
                 </DialogContent>
                 <DialogActions>
                     <Button color="primary" onClick={handleCloseErrorDialog}>
@@ -675,7 +804,20 @@ export default function Page(props) {
                                                         variant="outlined"
                                                         fullWidth
                                                         name="password"
-                                                        type="password"
+                                                        type={showRegisterPassword ? 'text' : 'password'}
+                                                        InputProps={{
+                                                            endAdornment: <InputAdornment position="end">
+                                                                <IconButton
+                                                                    aria-label="toggle password visibility"
+                                                                    onClick={handleClickShowRegisterPassword}
+                                                                    onMouseDown={handleMouseDownRegisterPassword}
+                                                                    edge="end"
+                                                                >
+                                                                    {showRegisterPassword ? <VisibilityOff /> : <Visibility />}
+                                                                </IconButton>
+                                                            </InputAdornment>
+                                                            ,
+                                                        }}
                                                         onChange={register_formik.handleChange}
                                                         value={register_formik.values.password}
                                                         label="Mot de Passe"
@@ -725,11 +867,23 @@ export default function Page(props) {
                                                         variant="outlined"
                                                         fullWidth
                                                         name="password"
-                                                        type="password"
+                                                        type={showLoginPassword ? 'text' : 'password'}
                                                         onChange={login_formik.handleChange}
                                                         value={login_formik.values.password}
                                                         label="Mot de Passe"
-
+                                                        InputProps={{
+                                                            endAdornment: <InputAdornment position="end">
+                                                                <IconButton
+                                                                    aria-label="toggle password visibility"
+                                                                    onClick={handleClickShowLoginPassword}
+                                                                    onMouseDown={handleMouseDownLoginPassword}
+                                                                    edge="end"
+                                                                >
+                                                                    {showLoginPassword ? <VisibilityOff /> : <Visibility />}
+                                                                </IconButton>
+                                                            </InputAdornment>
+                                                            ,
+                                                        }}
                                                     />
                                                     {login_formik.touched.password && login_formik.errors.password ? (
                                                         <div>{login_formik.errors.password}</div>
@@ -771,10 +925,30 @@ export default function Page(props) {
                                                         variant="outlined"
                                                         fullWidth
                                                         name="reset_credentials"
-                                                        type="string"
+                                                        type={
+                                                            reset_formik.values.method === "password"
+                                                                ? (showResetOldPassword ? "text" : "password")
+                                                                : "text"
+                                                        }
                                                         onChange={reset_formik.handleChange}
                                                         value={reset_formik.values.reset_credentials}
                                                         label={reset_formik.values.method === "password" ? "Mot de Passe" : "Reset Key"}
+                                                        InputProps={{
+                                                            ...(reset_formik.values.method === "password" && {
+                                                                endAdornment: (
+                                                                    <InputAdornment position="end">
+                                                                        <IconButton
+                                                                            aria-label="toggle password visibility"
+                                                                            onClick={handleClickShowResetOldPassword}
+                                                                            onMouseDown={handleMouseDownResetOldPassword}
+                                                                            edge="end"
+                                                                        >
+                                                                            {showResetOldPassword ? <VisibilityOff /> : <Visibility />}
+                                                                        </IconButton>
+                                                                    </InputAdornment>
+                                                                ),
+                                                            }),
+                                                        }}
                                                     />
                                                     {reset_formik.touched.reset_credentials && reset_formik.errors.reset_credentials ? (
                                                         <div>{reset_formik.errors.reset_credentials}</div>
@@ -783,10 +957,23 @@ export default function Page(props) {
                                                         variant="outlined"
                                                         fullWidth
                                                         name="new_password"
-                                                        type="password"
+                                                        type={showResetNewPassword ? "text" : "password"}
                                                         onChange={reset_formik.handleChange}
                                                         value={reset_formik.values.new_password}
                                                         label="Nouveau Mot de Passe"
+                                                        InputProps={{
+                                                            endAdornment: <InputAdornment position="end">
+                                                                <IconButton
+                                                                    aria-label="toggle password visibility"
+                                                                    onClick={handleClickShowResetNewPassword}
+                                                                    onMouseDown={handleMouseDownResetNewPassword}
+                                                                    edge="end"
+                                                                >
+                                                                    {showResetNewPassword ? <VisibilityOff /> : <Visibility />}
+                                                                </IconButton>
+                                                            </InputAdornment>
+                                                            ,
+                                                        }}
                                                     />
                                                     <TextField id="new_password_confirm"
                                                         variant="outlined"

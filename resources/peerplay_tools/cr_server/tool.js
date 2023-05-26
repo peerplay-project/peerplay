@@ -75,7 +75,6 @@ export function peerplay_cr_server_stop() {
 
 export function peerplay_cr_server_status() {
     let running = false
-    console.log(last_boot - Date.now())
     if (Date.now() - last_boot >= 10000){
         running = true
     }
