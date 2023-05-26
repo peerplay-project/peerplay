@@ -28,12 +28,12 @@ jobs:
       - name: Download Peerplay CR Client Artifact
         run: |
           cd artifacts
-          curl -sLJO "https://nightly.link/peerplay-project/peerplay_CR_client/workflows/build/peerplay-legacy/peerplay-cr-client-build.zip"
+          curl -sLJO "https://nightly.link/peerplay-project/peerplay_CR_client/workflows/build/master-peerplay/peerplay-cr-client-build.zip"
           cd ..
       - name: Download Peerplay CR Server Artifact
         run: |
           cd artifacts
-          curl -sLJO "https://nightly.link/peerplay-project/peerplay_CR_server/workflows/build/master/peerplay-cr-server-build.zip"
+          curl -sLJO "https://nightly.link/peerplay-project/peerplay_CR_server/workflows/build/master-peerplay/peerplay-cr-server-build.zip"
           cd ..
       - name: Extract Peerplay CR Client
         run: |
