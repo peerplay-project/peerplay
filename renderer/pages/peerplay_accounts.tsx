@@ -5,7 +5,7 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
-import { useFormik } from 'formik';
+import { Field, useFormik } from 'formik';
 import * as Yup from 'yup';
 import Store from 'electron-store';
 import axios from 'axios';
@@ -24,7 +24,12 @@ import {
     IconButton,
     ListItemText,
     ListItem,
-    ListItemSecondaryAction
+    ListItemSecondaryAction,
+    RadioGroup,
+    Radio,
+    FormControlLabel,
+    FormControl,
+    FormLabel
 } from '@mui/material';
 let Reset_Key = ""
 let Procedure = ""
@@ -183,36 +188,16 @@ export default function Page(props) {
     const register_formik = useFormik({
         initialValues: { username: "", email: "", password: "", password_confirm: "" },
         validationSchema: Yup.object().shape({
-            username: Yup.string().test(
-                "username_check",
-                "Please enter a correct email address",
-                function (value) {
-                    return this.parent.username !== "";
-
-                }
-            ),
-            email: Yup.string().test(
-                "email_check",
-                "Please enter a correct email address",
-                function (value) {
-                    return this.parent.email !== "";
-
-                }
-            ),
-            password: Yup.string().test(
-                "password_check",
-                "Please enter a password",
-                function (value) {
-                    return this.parent.password !== "";
-                }
-            ),
+            username: Yup.string().required("Please enter a correct username"),
+            email: Yup.string().email("Please enter a correct email address").required("Please enter a correct email address"),
+            password: Yup.string().required("Please enter a password"),
             password_confirm: Yup.string().test(
                 "password_confirm_check",
                 "Please enter the same password",
                 function (value) {
-                    return this.parent.password_confirm === this.parent.password;
+                    return value === this.parent.password || !this.parent.password;
                 }
-            ),
+            )
         }),
         onSubmit: async (values) => {
             Procedure = "L'Inscription"
@@ -229,6 +214,7 @@ export default function Page(props) {
                 console.log(response)
                 if (response.status === 200) {
                     storeAddAccount({ username: values.username, email: values.email, password: values.password });
+                    Reset_Key = response.data.account_data.reset_key
                     handleClickRegisterDialog();
                 }
             } catch (error) {
@@ -259,21 +245,8 @@ export default function Page(props) {
     const login_formik = useFormik({
         initialValues: { email: "", password: "" },
         validationSchema: Yup.object().shape({
-            email: Yup.string().test(
-                "email_check",
-                "Please enter a correct email address",
-                function (value) {
-                    return this.parent.email !== "";
-
-                }
-            ),
-            password: Yup.string().test(
-                "password_check",
-                "Please enter a password",
-                function (value) {
-                    return this.parent.password !== "";
-                }
-            ),
+            email: Yup.string().email("Please enter a correct email address").required("Please enter a correct email address"),
+            password: Yup.string().required("Please enter a password")
         }),
         onSubmit: async (values) => {
             Procedure = 'La Connexion'
@@ -285,7 +258,6 @@ export default function Page(props) {
             };
             try {
                 const response = await axios.post(url, null, { params: params });
-
                 if (response.status === 200) {
                     const responseData = response.data;
                     storeAddAccount({ username: responseData.username, email: values.email, password: values.password });
@@ -322,45 +294,19 @@ export default function Page(props) {
         },
     });
     const reset_formik = useFormik({
-        initialValues: { email: "", reset_key: "", password: "", new_password: "", new_password_confirm: "" },
+        initialValues: { email: "", reset_credentials: "", method: "", new_password: "", new_password_confirm: "" },
         validationSchema: Yup.object().shape({
-            email: Yup.string().test(
-                "email_check",
-                "Please enter a correct email address",
-                function (value) {
-                    return this.parent.email !== "";
-
-                }
-            ),
-            password: Yup.string().test(
-                "password_check",
-                "Please enter the original password or reset key",
-                function (value) {
-                    return this.parent.password !== "" || this.parent.reset_key !== "";
-                }
-            ),
-            reset_key: Yup.string().test(
-                "reset_key_check",
-                "Please enter the reset key or the original password",
-                function (value) {
-                    return this.parent.reset_key !== "" || this.parent.password !== "";
-
-                }
-            ),
-            new_password: Yup.string().test(
-                "password_check",
-                "Please enter a password",
-                function (value) {
-                    return this.parent.new_password !== "";
-                }
-            ),
+            email: Yup.string().email("Please enter a correct email address").required("Please enter a correct email address"),
+            method: Yup.string().required("Please select a method"),
+            reset_credentials: Yup.string().required("Please enter the reset key or the original password"),
+            new_password: Yup.string().required("Please enter a password"),
             new_password_confirm: Yup.string().test(
                 "password_confirm_check",
                 "Please enter the same password",
                 function (value) {
-                    return this.parent.new_password_confirm === this.parent.new_password;
+                    return value === this.parent.new_password || !this.parent.new_password;
                 }
-            ),
+            )
         }),
         onSubmit: async (values) => {
             Procedure = 'La Réinitialisation du Mot de Passe'
@@ -368,15 +314,15 @@ export default function Page(props) {
             const url = `http://${cr_client_data.cr_server_address_api}/auth/reset_password`;
             const params = {
                 email: values.email,
-                oldPassword: values.password,
-                resetKey: values.reset_key,
+                oldPassword: values.method === "password" ? values.reset_credentials : "",
+                resetKey: values.method === "reset_key" ? values.reset_credentials : "",
                 newPassword: values.new_password,
                 confirmNewPassword: values.new_password_confirm
             };
             try {
                 const response = await axios.post(url, null, { params: params });
                 if (response.status === 200 && response.data.status === 'SUCCESS') {
-                    const { code, account_data } = response.data;
+                    Reset_Key = response.data.account_data.newResetKey
                     handleClickResetDialog()
                 } else {
                     Error_Code = 'UNEXPECTED_RESPONSE'
@@ -436,10 +382,10 @@ export default function Page(props) {
     const handleCloseConnectDialog = () => setOpenConnectDialog(false);
     const handleClickConnectDialog = () => setOpenConnectDialog(true);
     const [openRegisterDialog, setOpenRegisterDialog] = React.useState(false);
-    const handleCloseRegisterDialog = () => setOpenRegisterDialog(false);
+    const handleCloseRegisterDialog = () => { Reset_Key = "", setOpenRegisterDialog(false); }
     const handleClickRegisterDialog = () => setOpenRegisterDialog(true);
     const [openResetDialog, setOpenResetDialog] = React.useState(false);
-    const handleCloseResetDialog = () => setOpenResetDialog(false);
+    const handleCloseResetDialog = () => { Reset_Key = "", setOpenResetDialog(false); }
     const handleClickResetDialog = () => setOpenResetDialog(true);
     const [openErrorDialog, setOpenErrorDialog] = React.useState(false);
     const handleCloseErrorDialog = () => setOpenErrorDialog(false);
@@ -450,139 +396,140 @@ export default function Page(props) {
             <Dialog PaperProps={{ style: { minWidth: '950px' } }} open={openIPListDialog} onClose={handleCloseIPListDialog}>
                 <DialogTitle>Parametrage IP</DialogTitle>
                 <DialogContent>
-                <Stack direction="column" spacing={0.2}>
-                    <DialogContentText><b>{"Voici les parametres IP en fonction de la console"}</b></DialogContentText>
-                    <DialogContentText><b>{"Ces parametres sont valable pour le compte suivant Username : " + req_username + " , Email Associé : " + req_email}</b></DialogContentText>
-                    <DialogContentText><b>{"ATTENTION, ces parametres ne doivent pas etre partagés entre plusieurs utilisateurs"}</b></DialogContentText>
-                    <Stack textAlign="center" direction="column" spacing={0.1}>
-                        <Grid container alignItems="center">
-                            <Grid item xs={3}>
-                                <DialogContentText><b>Console</b></DialogContentText>
+                    <Stack direction="column" spacing={0}>
+                        <DialogContentText><b>{"Voici les parametres IP en fonction de la console"}</b></DialogContentText>
+                        <DialogContentText><b>{"Ces parametres sont valable pour le compte suivant:"}</b></DialogContentText>
+                        <DialogContentText><b>{"Username : " + req_username + " , Email Associé : " + req_email}</b></DialogContentText>
+                        <DialogContentText><b>{"ATTENTION, ces parametres ne doivent pas etre partagés entre plusieurs utilisateurs"}</b></DialogContentText>
+                        <Stack textAlign="center" direction="column" spacing={0}>
+                            <Grid container alignItems="center">
+                                <Grid item xs={3}>
+                                    <DialogContentText><b>Console</b></DialogContentText>
+                                </Grid>
+                                <Grid item xs={3}>
+                                    <DialogContentText><b>IP Address</b></DialogContentText>
+                                </Grid>
+                                <Grid item xs={3}>
+                                    <DialogContentText><b>Subnet Mask</b></DialogContentText>
+                                </Grid>
+                                <Grid item xs={3}>
+                                    <DialogContentText><b>Gateway</b></DialogContentText>
+                                </Grid>
                             </Grid>
-                            <Grid item xs={3}>
-                                <DialogContentText><b>IP Address</b></DialogContentText>
+                            <Grid container alignItems="center">
+                                <Grid item xs={3}>
+                                    <DialogContentText><b>(Console)</b></DialogContentText>
+                                </Grid>
+                                <Grid item xs={3}>
+                                    <DialogContentText><b>(Adresse IP)</b></DialogContentText>
+                                </Grid>
+                                <Grid item xs={3}>
+                                    <DialogContentText><b>(Masque de Sous Réseau)</b></DialogContentText>
+                                </Grid>
+                                <Grid item xs={3}>
+                                    <DialogContentText><b>(Passerelle)</b></DialogContentText>
+                                </Grid>
                             </Grid>
-                            <Grid item xs={3}>
-                                <DialogContentText><b>Subnet Mask</b></DialogContentText>
+                            <Grid container alignItems="center">
+                                <Grid item xs={3}>
+                                    <DialogContentText><b>Switch</b></DialogContentText>
+                                </Grid>
+                                <Grid item xs={3}>
+                                    <DialogContentText>{console_ip.SWITCH}</DialogContentText>
+                                </Grid>
+                                <Grid item xs={3}>
+                                    <DialogContentText>255.0.0.0</DialogContentText>
+                                </Grid>
+                                <Grid item xs={3}>
+                                    <DialogContentText>{console_gateway.SWITCH}</DialogContentText>
+                                </Grid>
                             </Grid>
-                            <Grid item xs={3}>
-                                <DialogContentText><b>Gateway</b></DialogContentText>
+                            <Grid container alignItems="center">
+                                <Grid item xs={3}>
+                                    <DialogContentText><b>PS3</b></DialogContentText>
+                                </Grid>
+                                <Grid item xs={3}>
+                                    <DialogContentText>{console_ip.PS3}</DialogContentText>
+                                </Grid>
+                                <Grid item xs={3}>
+                                    <DialogContentText>255.0.0.0</DialogContentText>
+                                </Grid>
+                                <Grid item xs={3}>
+                                    <DialogContentText>{console_gateway.PS3}</DialogContentText>
+                                </Grid>
                             </Grid>
-                        </Grid>
-                        <Grid container alignItems="center">
-                            <Grid item xs={3}>
-                                <DialogContentText><b>(Console)</b></DialogContentText>
+                            <Grid container alignItems="center">
+                                <Grid item xs={3}>
+                                    <DialogContentText><b>PS4</b></DialogContentText>
+                                </Grid>
+                                <Grid item xs={3}>
+                                    <DialogContentText>{console_ip.PS4}</DialogContentText>
+                                </Grid>
+                                <Grid item xs={3}>
+                                    <DialogContentText>255.0.0.0</DialogContentText>
+                                </Grid>
+                                <Grid item xs={3}>
+                                    <DialogContentText>{console_gateway.PS4}</DialogContentText>
+                                </Grid>
                             </Grid>
-                            <Grid item xs={3}>
-                                <DialogContentText><b>(Adresse IP)</b></DialogContentText>
+                            <Grid container alignItems="center">
+                                <Grid item xs={3}>
+                                    <DialogContentText><b>PS5</b></DialogContentText>
+                                </Grid>
+                                <Grid item xs={3}>
+                                    <DialogContentText>{console_ip.PS5}</DialogContentText>
+                                </Grid>
+                                <Grid item xs={3}>
+                                    <DialogContentText>255.0.0.0</DialogContentText>
+                                </Grid>
+                                <Grid item xs={3}>
+                                    <DialogContentText>{console_gateway.PS5}</DialogContentText>
+                                </Grid>
                             </Grid>
-                            <Grid item xs={3}>
-                                <DialogContentText><b>(Masque de Sous Réseau)</b></DialogContentText>
+                            <Grid container alignItems="center">
+                                <Grid item xs={3}>
+                                    <DialogContentText><b>XBOX 360</b></DialogContentText>
+                                </Grid>
+                                <Grid item xs={3}>
+                                    <DialogContentText>{console_ip.XBOX_360}</DialogContentText>
+                                </Grid>
+                                <Grid item xs={3}>
+                                    <DialogContentText>255.0.0.0</DialogContentText>
+                                </Grid>
+                                <Grid item xs={3}>
+                                    <DialogContentText>{console_gateway.XBOX_360}</DialogContentText>
+                                </Grid>
                             </Grid>
-                            <Grid item xs={3}>
-                                <DialogContentText><b>(Passerelle)</b></DialogContentText>
+                            <Grid container alignItems="center">
+                                <Grid item xs={3}>
+                                    <DialogContentText><b>XBOX ONE</b></DialogContentText>
+                                </Grid>
+                                <Grid item xs={3}>
+                                    <DialogContentText>{console_ip.XBOX_ONE}</DialogContentText>
+                                </Grid>
+                                <Grid item xs={3}>
+                                    <DialogContentText>255.0.0.0</DialogContentText>
+                                </Grid>
+                                <Grid item xs={3}>
+                                    <DialogContentText>{console_gateway.XBOX_ONE}</DialogContentText>
+                                </Grid>
                             </Grid>
-                        </Grid>
-                        <Grid container alignItems="center">
-                            <Grid item xs={3}>
-                                <DialogContentText><b>Switch</b></DialogContentText>
+                            <Grid container alignItems="center">
+                                <Grid item xs={3}>
+                                    <DialogContentText><b>XBOX SERIES</b></DialogContentText>
+                                </Grid>
+                                <Grid item xs={3}>
+                                    <DialogContentText>{console_ip.XBOX_SERIES}</DialogContentText>
+                                </Grid>
+                                <Grid item xs={3}>
+                                    <DialogContentText>255.0.0.0</DialogContentText>
+                                </Grid>
+                                <Grid item xs={3}>
+                                    <DialogContentText>{console_gateway.XBOX_SERIES}</DialogContentText>
+                                </Grid>
                             </Grid>
-                            <Grid item xs={3}>
-                                <DialogContentText>{console_ip.SWITCH}</DialogContentText>
-                            </Grid>
-                            <Grid item xs={3}>
-                                <DialogContentText>255.0.0.0</DialogContentText>
-                            </Grid>
-                            <Grid item xs={3}>
-                                <DialogContentText>{console_gateway.SWITCH}</DialogContentText>
-                            </Grid>
-                        </Grid>
-                        <Grid container alignItems="center">
-                            <Grid item xs={3}>
-                                <DialogContentText><b>PS3</b></DialogContentText>
-                            </Grid>
-                            <Grid item xs={3}>
-                                <DialogContentText>{console_ip.PS3}</DialogContentText>
-                            </Grid>
-                            <Grid item xs={3}>
-                                <DialogContentText>255.0.0.0</DialogContentText>
-                            </Grid>
-                            <Grid item xs={3}>
-                                <DialogContentText>{console_gateway.PS3}</DialogContentText>
-                            </Grid>   
-                        </Grid>
-                        <Grid container alignItems="center">
-                            <Grid item xs={3}>
-                                <DialogContentText><b>PS4</b></DialogContentText>
-                            </Grid>
-                            <Grid item xs={3}>
-                                <DialogContentText>{console_ip.PS4}</DialogContentText>
-                            </Grid>
-                            <Grid item xs={3}>
-                                <DialogContentText>255.0.0.0</DialogContentText>
-                            </Grid>
-                            <Grid item xs={3}>
-                                <DialogContentText>{console_gateway.PS4}</DialogContentText>
-                            </Grid>
-                        </Grid>
-                        <Grid container alignItems="center">
-                            <Grid item xs={3}>
-                                <DialogContentText><b>PS5</b></DialogContentText>
-                            </Grid>
-                            <Grid item xs={3}>
-                                <DialogContentText>{console_ip.PS5}</DialogContentText>
-                            </Grid>
-                            <Grid item xs={3}>
-                                <DialogContentText>255.0.0.0</DialogContentText>
-                            </Grid>
-                            <Grid item xs={3}>
-                                <DialogContentText>{console_gateway.PS5}</DialogContentText>
-                            </Grid>
-                        </Grid>
-                        <Grid container alignItems="center">
-                            <Grid item xs={3}>
-                                <DialogContentText><b>XBOX 360</b></DialogContentText>
-                            </Grid>
-                            <Grid item xs={3}>
-                                <DialogContentText>{console_ip.XBOX_360}</DialogContentText>
-                            </Grid>
-                            <Grid item xs={3}>
-                                <DialogContentText>255.0.0.0</DialogContentText>
-                            </Grid>
-                            <Grid item xs={3}>
-                                <DialogContentText>{console_gateway.XBOX_360}</DialogContentText>
-                            </Grid>
-                        </Grid>
-                        <Grid container alignItems="center">
-                            <Grid item xs={3}>
-                                <DialogContentText><b>XBOX ONE</b></DialogContentText>
-                            </Grid>
-                            <Grid item xs={3}>
-                                <DialogContentText>{console_ip.XBOX_ONE}</DialogContentText>
-                            </Grid>
-                            <Grid item xs={3}>
-                                <DialogContentText>255.0.0.0</DialogContentText>
-                            </Grid>
-                            <Grid item xs={3}>
-                                <DialogContentText>{console_gateway.XBOX_ONE}</DialogContentText>
-                            </Grid>
-                        </Grid>
-                        <Grid container alignItems="center">
-                            <Grid item xs={3}>
-                                <DialogContentText><b>XBOX SERIES</b></DialogContentText>
-                            </Grid>
-                            <Grid item xs={3}>
-                                <DialogContentText>{console_ip.XBOX_SERIES}</DialogContentText>
-                            </Grid>
-                            <Grid item xs={3}>
-                                <DialogContentText>255.0.0.0</DialogContentText>
-                            </Grid>
-                            <Grid item xs={3}>
-                                <DialogContentText>{console_gateway.XBOX_SERIES}</DialogContentText>
-                            </Grid>
-                        </Grid>
+                        </Stack>
                     </Stack>
-                </Stack>
                 </DialogContent>
                 <DialogActions>
                     <Button color="primary" onClick={handleCloseIPListDialog}>
@@ -632,7 +579,7 @@ export default function Page(props) {
                     <DialogContentText>{"Veillez a Bien Conserver Cette Clé (Elle vous sera demandé pour réinitialiser votre mot de passe si vous le perdez a nouveau"}</DialogContentText>
                 </DialogContent>
                 <DialogActions>
-                    <Button color="primary" onClick={handleCloseConnectDialog}>
+                    <Button color="primary" onClick={handleCloseResetDialog}>
                         Close
                     </Button>
                 </DialogActions>
@@ -699,7 +646,7 @@ export default function Page(props) {
                                     <form onSubmit={register_formik.handleSubmit}>
                                         <Grid container spacing={0.5}>
                                             <Grid item xs={17}>
-                                                <Stack direction="column" spacing={0.5}>
+                                                <Stack direction="column" spacing={1}>
                                                     <TextField id="username"
                                                         variant="outlined"
                                                         fullWidth
@@ -733,9 +680,6 @@ export default function Page(props) {
                                                         value={register_formik.values.password}
                                                         label="Mot de Passe"
                                                     />
-                                                    {register_formik.touched.password && register_formik.errors.password ? (
-                                                        <div>{register_formik.errors.password}</div>
-                                                    ) : null}
                                                     <TextField id="password_confirm"
                                                         variant="outlined"
                                                         fullWidth
@@ -745,6 +689,9 @@ export default function Page(props) {
                                                         value={register_formik.values.password_confirm}
                                                         label="Confirmation Mot de Passe"
                                                     />
+                                                    {register_formik.touched.password && register_formik.errors.password ? (
+                                                        <div>{register_formik.errors.password}</div>
+                                                    ) : null}
                                                     {register_formik.touched.password_confirm && register_formik.errors.password_confirm ? (
                                                         <div>{register_formik.errors.password_confirm}</div>
                                                     ) : null}
@@ -760,7 +707,7 @@ export default function Page(props) {
                                     <form onSubmit={login_formik.handleSubmit}>
                                         <Grid container spacing={0.5}>
                                             <Grid item xs={17}>
-                                                <Stack direction="column" spacing={0.5}>
+                                                <Stack direction="column" spacing={1}>
                                                     <TextField id="email"
                                                         variant="outlined"
                                                         fullWidth
@@ -800,7 +747,7 @@ export default function Page(props) {
                                     <form onSubmit={reset_formik.handleSubmit}>
                                         <Grid container>
                                             <Grid item xs={17}>
-                                                <Stack direction="column" spacing={0.5}>
+                                                <Stack direction="column" spacing={1}>
                                                     <TextField id="email"
                                                         variant="outlined"
                                                         fullWidth
@@ -814,27 +761,23 @@ export default function Page(props) {
                                                     {reset_formik.touched.email && reset_formik.errors.email ? (
                                                         <div>{reset_formik.errors.email}</div>
                                                     ) : null}
-                                                    <TextField id="password"
+                                                    <RadioGroup sx={{ justifyContent: "center" }} row value={reset_formik.values.method} onChange={reset_formik.handleChange} aria-labelledby={reset_formik.values.method} >
+                                                        <Stack sx={{ maxHeight: "15px" }} direction="row" spacing={0.5}>
+                                                            <FormControlLabel name="method" value="password" control={<Radio />} label="Password" />
+                                                            <FormControlLabel name="method" value="reset_key" control={<Radio />} label="Reset Key" />
+                                                        </Stack>
+                                                    </RadioGroup>
+                                                    <TextField id="reset_credentials"
                                                         variant="outlined"
                                                         fullWidth
-                                                        name="password"
-                                                        type="password"
-                                                        onChange={reset_formik.handleChange}
-                                                        value={reset_formik.values.password}
-                                                        label="Mot de Passe"
-
-                                                    />
-                                                    <TextField id="reset_key"
-                                                        variant="outlined"
-                                                        fullWidth
-                                                        name="reset_key"
+                                                        name="reset_credentials"
                                                         type="string"
                                                         onChange={reset_formik.handleChange}
-                                                        value={reset_formik.values.reset_key}
-                                                        label="Clé de Réinitialisation"
+                                                        value={reset_formik.values.reset_credentials}
+                                                        label={reset_formik.values.method === "password" ? "Mot de Passe" : "Reset Key"}
                                                     />
-                                                    {reset_formik.touched.reset_key && reset_formik.errors.reset_key ? (
-                                                        <div>{reset_formik.errors.reset_key}</div>
+                                                    {reset_formik.touched.reset_credentials && reset_formik.errors.reset_credentials ? (
+                                                        <div>{reset_formik.errors.reset_credentials}</div>
                                                     ) : null}
                                                     <TextField id="new_password"
                                                         variant="outlined"
@@ -845,9 +788,6 @@ export default function Page(props) {
                                                         value={reset_formik.values.new_password}
                                                         label="Nouveau Mot de Passe"
                                                     />
-                                                    {reset_formik.touched.new_password && reset_formik.errors.new_password ? (
-                                                        <div>{reset_formik.errors.new_password}</div>
-                                                    ) : null}
                                                     <TextField id="new_password_confirm"
                                                         variant="outlined"
                                                         fullWidth
@@ -857,6 +797,9 @@ export default function Page(props) {
                                                         value={reset_formik.values.new_password_confirm}
                                                         label="Confirmation Nouveau Mot de Passe"
                                                     />
+                                                    {reset_formik.touched.new_password && reset_formik.errors.new_password ? (
+                                                        <div>{reset_formik.errors.new_password}</div>
+                                                    ) : null}
                                                     {reset_formik.touched.new_password_confirm && reset_formik.errors.new_password_confirm ? (
                                                         <div>{reset_formik.errors.new_password_confirm}</div>
                                                     ) : null}

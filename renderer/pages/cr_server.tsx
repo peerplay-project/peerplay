@@ -179,7 +179,7 @@ export default function Page(props) {
             </Dialog>
             <Grid container>
                 <Grid item xs={13} md={5}>
-                    <Box py={3} display="flex" bgcolor="action.selected" style={{maxHeight: '395px', height: '100%'}}>
+                    <Box py={3} display="flex" bgcolor="action.selected" style={{minHeight: '620px', height: '100%'}}>
                         <Box>
                             <Container>
                                 <Typography variant="h5" component="h5" gutterBottom={true}>{content['header']}</Typography>
