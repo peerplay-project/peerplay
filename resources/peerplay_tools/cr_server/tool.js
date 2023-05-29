@@ -17,8 +17,8 @@ export function peerplay_cr_server_start(uuid, minimal_port_range, domain_name, 
             filepath = `${process.resourcesPath}`
             executablePaths = {
                 'win32': `${filepath}\\app.asar\\resources\\peerplay_tools\\cr_server\\software\\peerplay_cr_server.js`,
-                'linux': `./${filepath}/app.asar/resources/peerplay_tools/cr_server/software/peerplay_cr_server.js`,
-                'darwin': `./${filepath}/app.asar/resources/peerplay_tools/cr_server/software/peerplay_cr_server.js`
+                'linux': `${filepath}/app.asar/resources/peerplay_tools/cr_server/software/peerplay_cr_server.js`,
+                'darwin': `${filepath}/app.asar/resources/peerplay_tools/cr_server/software/peerplay_cr_server.js`
             }
         } else {
             environment = "development"

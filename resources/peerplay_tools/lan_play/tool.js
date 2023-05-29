@@ -12,15 +12,15 @@ export function lan_play_start(server_ip) {
             filepath = `${process.resourcesPath}`
             executablePaths = {
                 'win32': `${filepath}\\app.asar\\resources\\peerplay_tools\\lan_play\\software\\windows\\lan-play.exe`,
-                'linux': `chmod +x ${filepath}/app.asar/resources/peerplay_tools/lan_play/software/linux/lan-play && ./${filepath}/app.asar/resources/peerplay_tools/lan_play/software/linux/lan-play`,
-                'darwin': `chmod +x ${filepath}/app.asar/resources/peerplay_tools/lan_play/software/macos/lan-play && ./${filepath}/app.asar/resources/peerplay_tools/lan_play/software/macos/lan-play`
+                'linux': `chmod +x ${filepath}/app.asar/resources/peerplay_tools/lan_play/software/linux/lan-play && ${filepath}/app.asar/resources/peerplay_tools/lan_play/software/linux/lan-play`,
+                'darwin': `chmod +x ${filepath}/app.asar/resources/peerplay_tools/lan_play/software/macos/lan-play && ${filepath}/app.asar/resources/peerplay_tools/lan_play/software/macos/lan-play`
             }
         } else {
             filepath = `${process.resourcesPath.slice(0, -37)}`
             executablePaths = {
                 'win32': `${filepath}\\resources\\peerplay_tools\\lan_play\\software\\windows\\lan-play.exe`,
-                'linux': `chmod +x ${filepath}/resources/peerplay_tools/lan_play/software/linux/lan-play && ./${filepath}/resources/peerplay_tools/lan_play/software/linux/lan-play`,
-                'darwin': `chmod +x ${filepath}/resources/peerplay_tools/lan_play/software/macos/lan-play && ./${filepath}/resources/peerplay_tools/lan_play/software/macos/lan-play`
+                'linux': `chmod +x ${filepath}/resources/peerplay_tools/lan_play/software/linux/lan-play && ${filepath}/resources/peerplay_tools/lan_play/software/linux/lan-play`,
+                'darwin': `chmod +x ${filepath}/resources/peerplay_tools/lan_play/software/macos/lan-play && ${filepath}/resources/peerplay_tools/lan_play/software/macos/lan-play`
             }
         }
     
