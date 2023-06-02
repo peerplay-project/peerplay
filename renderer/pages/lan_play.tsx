@@ -11,6 +11,7 @@ import Store from 'electron-store';
 import { Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Checkbox, FormControlLabel, FormHelperText } from '@mui/material';
 import { lan_play_start, lan_play_status, lan_play_stop } from '../../resources/peerplay_tools/lan_play/tool';
 import { peerplay_cr_client_status } from '../../resources/peerplay_tools/cr_client/tool';
+import axios from 'axios';
 
 // Définir la forme des données à stocker
 interface Data {
@@ -43,21 +44,32 @@ export default function Page(props) {
         validationSchema: Yup.object().shape({
             lan_play_server_address: Yup.string().required("Please enter a Lan Play Server address"),
         }),
-        onSubmit: (values) => {
-            const data: Data = {
-                lan_play_server_address: values.lan_play_server_address,
-            }
-            store.set('config', data);
-            if (peerplay_cr_client_status() === false && lan_play_status() === false) {
-                const script = lan_play_start(values.lan_play_server_address)
-                if (script === 'SUCCESS') {
-                    handleClickStartDialog();
+        onSubmit: async (values) => {
+            let url = `http://${values.lan_play_server_address}/info`;
+            try {
+                const response = await axios.get(url);
+                if (response.status === 200) {
+                    const responseData = response.data;
+                    if (typeof responseData.online === 'number') {
+                        const data: Data = {
+                            lan_play_server_address: values.lan_play_server_address,
+                        }
+                        store.set('config', data);
+                        if (peerplay_cr_client_status() === false && lan_play_status() === false) {
+                            const script = lan_play_start(values.lan_play_server_address)
+                            if (script === 'SUCCESS') {
+                                handleClickStartDialog();
+                            }
+                        } else {
+                            handleClickAlreadyStartedDialog();
+                        }
+                    }
+                } else {
+                    handleClickCannotConnectDialog();
                 }
-                else {
-                    alert(script)
-                }
-            } else {
-                handleClickAlreadyStartedDialog();
+            } catch (error) {
+                console.log(error);
+                handleClickCannotConnectDialog();
             }
         },
     });
@@ -68,6 +80,9 @@ export default function Page(props) {
     const [openAlreadyStartedDialog, setOpenAlreadyStartedDialog] = React.useState(false);
     const handleCloseAlreadyStartedDialog = () => setOpenAlreadyStartedDialog(false);
     const handleClickAlreadyStartedDialog = () => setOpenAlreadyStartedDialog(true);
+    const [openCannotConnectDialog, setOpenCannotConnectDialog] = React.useState(false);
+    const handleCloseCannotConnectDialog = () => setOpenCannotConnectDialog(false);
+    const handleClickCannotConnectDialog = () => setOpenCannotConnectDialog(true);
     return (
         <React.Fragment>
             <Dialog open={openStartDialog} onClose={handleCloseStartDialog}>
@@ -88,6 +103,17 @@ export default function Page(props) {
                 </DialogContent>
                 <DialogActions>
                     <Button color="primary" onClick={handleCloseAlreadyStartedDialog}>
+                        Close
+                    </Button>
+                </DialogActions>
+            </Dialog>
+            <Dialog open={openCannotConnectDialog} onClose={handleCloseCannotConnectDialog}>
+                <DialogTitle>Connexion Impossible</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>Impossible de se connecter au serveur</DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button color="primary" onClick={handleCloseCannotConnectDialog}>
                         Close
                     </Button>
                 </DialogActions>

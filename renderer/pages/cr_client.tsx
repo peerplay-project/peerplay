@@ -8,6 +8,7 @@ import TextField from '@mui/material/TextField';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import Store from 'electron-store';
+import axios from 'axios';
 import {
     Dialog,
     DialogTitle,
@@ -16,7 +17,6 @@ import {
     DialogActions,
     Checkbox,
     FormControlLabel,
-    FormHelperText,
     Stack
 } from '@mui/material';
 import { peerplay_cr_client_start, peerplay_cr_client_status, peerplay_cr_client_stop } from '../../resources/peerplay_tools/cr_client/tool';
@@ -57,76 +57,83 @@ export default function Page(props) {
     const formik = useFormik({
         initialValues: sauvegarde,
         validationSchema: Yup.object().shape({
-            cr_server_address_api: Yup.string().test(
-                "is-server-address-required",
-                "Please enter a CR server address",
-                function (value) {
-                    if (this.parent.use_localhost_cr_server === false) {
-                        return value && value.trim().length > 0;
-                    }
-                    return true;
+          cr_server_address_api: Yup.string().test(
+            "is-server-address-required",
+            "Please enter a CR server address",
+            function (value) {
+              if (this.parent.use_localhost_cr_server === false) {
+                return value && value.trim().length > 0;
+              }
+              return true;
+            }
+          ),
+          use_localhost_cr_server: Yup.boolean().test(
+            'local_server_check',
+            'Cannot use Localhost CR_SERVER if Not Opened',
+            function (value) {
+              if (value) {
+                return peerplay_cr_server_status().started !== false;
+              } else {
+                if (
+                  peerplay_cr_server_status().started === false &&
+                  this.parent.cr_server_address === 'localhost:5981'
+                ) {
+                  return false;
                 }
-            ),
-            use_localhost_cr_server: Yup.boolean().test(
-                'local_server_check',
-                'Cannot use Localhost CR_SERVER if Not Opened',
-                function (value) {
-                    if (value) {
-                        return peerplay_cr_server_status().started !== false;
-                    }
-                    else {
-                        if (peerplay_cr_server_status().started === false && this.parent.cr_server_address === 'localhost:5981') {
-                            return false
-                        }
-                    }
-                    return true
-                }
-            ),
+              }
+              return true;
+            }
+          ),
         }),
-        onSubmit: (values) => {
-            values.cr_server_address = ''
-            const xhr = new XMLHttpRequest();
+        onSubmit: async (values) => {
+          values.cr_server_address = '';
+          let url = `http://${values.cr_server_address_api}/network/general/status`;
+          let serverAddress = '';
+      
+          try {
             if (values.use_localhost_cr_server && peerplay_cr_server_status().running === true) {
-                values.cr_server_address_api = "localhost:5985";
-                xhr.open('GET', `http://${values.cr_server_address_api}/network/general/status`, false);
-                xhr.send();
-                if (xhr.status === 200) {
-                    values.cr_server_address = "localhost:5981";
-                } else {
-                    console.log(xhr);
+              values.cr_server_address_api = "localhost:5985";
+              const response = await axios.get(url);
+              if (response.status === 200) {
+                serverAddress = "localhost:5981";
+              } else {
+                console.log(response);
+              }
+            } else {
+              const response = await axios.get(url);
+              if (response.status === 200) {
+                const responseData = response.data;
+                if (responseData.external_ip !== 'DISABLED') {
+                  serverAddress = responseData.external_ip;
                 }
+              } else {
+                handleClickCannotConnectDialog();
+              }
             }
-            else {
-                xhr.open('GET', `http://${values.cr_server_address_api}/network/general/status`, false);
-                xhr.send();
-
-                if (xhr.status === 200) {
-                    const response = JSON.parse(xhr.responseText);
-                    if (response.external_ip !== 'DISABLED'){
-                        values.cr_server_address = response.external_ip
-                    }
-                } else {
-                    handleClickCannotConnectDialog();
-                }
+          } catch (error) {
+            console.log(error);
+            handleClickCannotConnectDialog();
+          }
+      
+          const data = {
+            cr_server_address: serverAddress,
+            cr_server_address_api: values.cr_server_address_api,
+            use_localhost_cr_server: values.use_localhost_cr_server,
+          };
+          store.set('config', data);
+      
+          if (serverAddress !== '') {
+            if (peerplay_cr_client_status() === false && lan_play_status() === false) {
+              const script = peerplay_cr_client_start(serverAddress);
+              if (script === 'SUCCESS') {
+                handleClickStartDialog();
+              }
+            } else {
+              handleClickAlreadyStartedDialog();
             }
-            const data: Data = {
-                cr_server_address: values.cr_server_address,
-                cr_server_address_api: values.cr_server_address_api,
-                use_localhost_cr_server: values.use_localhost_cr_server,
-            }
-            store.set('config', data);
-            if (values.cr_server_address !== ''){
-                if (peerplay_cr_client_status() === false && lan_play_status() === false) {
-                    const script = peerplay_cr_client_start(values.cr_server_address)
-                    if (script === 'SUCCESS') {
-                        handleClickStartDialog();
-                    }
-                } else {
-                    handleClickAlreadyStartedDialog();
-                }
-            }
+          }
         },
-    });
+      });
 
     const [openStartDialog, setOpenStartDialog] = React.useState(false);
     const handleCloseStartDialog = () => setOpenStartDialog(false);

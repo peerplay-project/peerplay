@@ -1,31 +1,46 @@
 import os from 'os'
+import path from 'path'
 import { execFile } from 'child_process'
 export const lan_play_version = "0.2.3"
 let started = false
 let child_process = undefined
 const isProd = process.env.NODE_ENV === 'production';
 let filepath = ""
-let executablePaths = {}
+let platform = ""
+let executablePath = ""
 export function lan_play_start(server_ip) {
     if (child_process === undefined){
-        if (isProd) {
-            filepath = `${process.resourcesPath}`
-            executablePaths = {
-                'win32': `${filepath}\\app.asar\\resources\\peerplay_tools\\lan_play\\software\\windows\\lan-play.exe`,
-                'linux': `chmod +x ${filepath}/app.asar/resources/peerplay_tools/lan_play/software/linux/lan-play && ${filepath}/app.asar/resources/peerplay_tools/lan_play/software/linux/lan-play`,
-                'darwin': `chmod +x ${filepath}/app.asar/resources/peerplay_tools/lan_play/software/macos/lan-play && ${filepath}/app.asar/resources/peerplay_tools/lan_play/software/macos/lan-play`
-            }
-        } else {
-            filepath = `${process.resourcesPath.slice(0, -37)}`
-            executablePaths = {
-                'win32': `${filepath}\\resources\\peerplay_tools\\lan_play\\software\\windows\\lan-play.exe`,
-                'linux': `chmod +x ${filepath}/resources/peerplay_tools/lan_play/software/linux/lan-play && ${filepath}/resources/peerplay_tools/lan_play/software/linux/lan-play`,
-                'darwin': `chmod +x ${filepath}/resources/peerplay_tools/lan_play/software/macos/lan-play && ${filepath}/resources/peerplay_tools/lan_play/software/macos/lan-play`
-            }
+        switch (os.platform()) {
+            case "win32":
+                platform = "windows"
+                break;
+            case "linux":
+                platform = "linux";
+                break;
+            case "darwin":
+                platform = "macos";
+                break;
         }
-    
-        // Obtenir le chemin absolu de l'exécutable en fonction du système hôte
-        const executablePath = executablePaths[os.platform()];
+        if (isProd){
+            filepath = path.join(process.resourcesPath, "app.asar");
+        }
+        else
+        {
+            filepath = path.resolve(process.resourcesPath,"../../../../");
+        }
+        let executableName = "lan-play";
+        executablePath = path.join(
+            filepath,
+            "resources",
+            "peerplay_tools",
+            "lan_play",
+            "software",
+            platform,
+            executableName
+        );
+        if (platform === "windows"){
+            executablePath + ".exe"
+        }
         // Lancer l'exécutable avec les arguments nécessaires
         child_process = execFile(`${executablePath}`, ['--relay-server-addr', server_ip.split(' ')[0].replace(/[&<>;'"]/g, "")])
         child_process.on('exit', () => {
