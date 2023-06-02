@@ -7,7 +7,7 @@ const isProd = process.env.NODE_ENV === 'production';
 let filepath = ""
 if (isProd) {
     serve({ directory: 'app' });
-    filepath = `${app.getAppPath()}\\resources\\icon.ico`
+    filepath = path.join(app.getAppPath(),'resources','icon.ico')
 } else {
     app.setPath('userData', `${app.getPath('userData')} (development)`);
     filepath = path.join(process.resourcesPath, '..', '..','..', '..', 'resources','icon.ico');
@@ -23,11 +23,11 @@ async function createMainWindow() {
         height: 700,
         resizable: false,
         webPreferences: {
-            devTools: !isProd
+            //devTools: !isProd
         }
     });
     if (isProd) {
-        mainWindow.removeMenu();
+        //mainWindow.removeMenu();
     }
     await mainWindow.loadURL(isProd ? 'app://./home.html' : `http://localhost:${process.argv[2]}/home`);
     mainWindow.on('close', (event) => {
