@@ -41,7 +41,10 @@ export function lan_play_start(server_ip) {
         if (platform === "windows"){
             executablePath + ".exe"
         }
-        // Lancer l'exécutable avec les arguments nécessaires
+        else
+        {
+            fs.chmodSync(executablePath, 0o755);
+        }
         child_process = execFile(`${executablePath}`, ['--relay-server-addr', server_ip.split(' ')[0].replace(/[&<>;'"]/g, "")])
         child_process.on('exit', () => {
             child_process = undefined;

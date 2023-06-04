@@ -88,8 +88,8 @@ export function peerplay_cr_client_start(server_ip) {
                 }
                 else {
                     legacy_executablePath = path.join(executablePath, console_app);
+                    fs.chmodSync(legacy_executablePath, 0o755);
                 }
-                fs.chmodSync(legacy_executablePath, 0o755);
                 child_processes.push(
                     execFile(legacy_executablePath, [
                         "--relay-server-addr",
