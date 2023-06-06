@@ -25,12 +25,11 @@ import InfoIcon from '@mui/icons-material/Info';
 import { useRouter } from 'next/router'
 import { Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button } from '@mui/material';
 import { peerplay_ui_version } from '../resources/peerplay_tools/peerplay_ui/tool'
-import {peerplay_cr_client_status, peerplay_cr_client_version} from '../resources/peerplay_tools/cr_client/tool'
-import {peerplay_cr_server_status, peerplay_cr_server_version} from '../resources/peerplay_tools/cr_server/tool'
-import {lan_play_status, lan_play_version} from '../resources/peerplay_tools/lan_play/tool'
-import {ManageAccounts} from "@mui/icons-material";
+import { peerplay_cr_client_status, peerplay_cr_client_version } from '../resources/peerplay_tools/cr_client/tool'
+import { peerplay_cr_server_status, peerplay_cr_server_version } from '../resources/peerplay_tools/cr_server/tool'
+import { lan_play_status, lan_play_version } from '../resources/peerplay_tools/lan_play/tool'
+import { ManageAccounts } from "@mui/icons-material";
 const drawerWidth = 220;
-
 
 const openedMixin = (theme: Theme): CSSObject => ({
     width: drawerWidth,
@@ -142,12 +141,8 @@ export default function Layout({ children }) {
         setOpenDrawer(false);
     };
 
-    const [openAboutDialog, setOpenAboutDialog] = React.useState(false);
-    const handleCloseAboutDialog = () => setOpenAboutDialog(false);
-    const handleClickAboutDialog = () => setOpenAboutDialog(true);
-
-    const refreshStatus = () => {
-        const server_status = peerplay_cr_server_status();
+    const refreshStatus = async () => {
+        const server_status = await peerplay_cr_server_status(true);
         const newStatus = {
             cr_server_running: server_status.running,
             cr_server: server_status.started,
@@ -164,8 +159,12 @@ export default function Layout({ children }) {
         };
     }, []);
 
+    const [openAboutDialog, setOpenAboutDialog] = React.useState(false);
+    const handleCloseAboutDialog = () => setOpenAboutDialog(false);
+    const handleClickAboutDialog = () => setOpenAboutDialog(true);
+
     return (
-        <Box sx={{ display: 'flex', overflow:"clip"}}>
+        <Box sx={{ display: 'flex', overflow: "clip" }}>
             <title>Peerplay</title>
             <CssBaseline />
             <Dialog open={openAboutDialog} onClose={handleCloseAboutDialog}>
@@ -227,7 +226,7 @@ export default function Layout({ children }) {
                     <ListItem key="/peerplay_accounts" disablePadding>
                         <ListItemButton onClick={() => router.push('/peerplay_accounts')} selected={pathname === "/peerplay_accounts"}>
                             <ListItemIcon>
-                                <ManageAccounts/>
+                                <ManageAccounts />
                             </ListItemIcon>
                             <ListItemText primary="Account Manager" />
                         </ListItemButton>
@@ -244,7 +243,7 @@ export default function Layout({ children }) {
                     <ListItem key="/cr_server" disablePadding>
                         <ListItemButton onClick={() => router.push('/cr_server')} selected={pathname === "/cr_server"}>
                             <ListItemIcon>
-                            <DnsIcon style={{ color: status.cr_server ? (status.cr_server_running ? "green" : "orange") : "inherit" }} />
+                                <DnsIcon style={{ color: status.cr_server ? (status.cr_server_running ? "green" : "orange") : "inherit" }} />
                             </ListItemIcon>
                             <ListItemText primary="Console Relay" secondary="Server" />
                         </ListItemButton>
@@ -278,7 +277,7 @@ export default function Layout({ children }) {
                     </ListItem>
                 </List>
             </Drawer>
-            <Box component="main" sx={{ flexGrow: 1, p: 3 }} style={{ textAlign: "center"}}>
+            <Box component="main" sx={{ flexGrow: 1, p: 3 }} style={{ textAlign: "center" }}>
                 <DrawerHeader />
                 {children}
             </Box>

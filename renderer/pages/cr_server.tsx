@@ -33,7 +33,7 @@ export default function Page(props) {
     const valeursParDefaut: Data = {
         uuid: uuidv5(uuidv4(), uuidv4()),
         minimal_port_range: 0,
-        domain_name:"",
+        domain_name: "",
         open_external_udp_server: false,
         cr_server_external_port: 0
     };
@@ -63,7 +63,7 @@ export default function Page(props) {
                 }
             ),
         }),
-        onSubmit: (values) => {
+        onSubmit: async (values) => {
             const data: Data = {
                 uuid: sauvegarde.uuid,
                 minimal_port_range: values.minimal_port_range,
@@ -72,14 +72,22 @@ export default function Page(props) {
                 cr_server_external_port: values.cr_server_external_port
             }
             store.set('config', data);
-            if (peerplay_cr_server_status().started === false) {
-                const start_process = peerplay_cr_server_start(data.uuid, values.minimal_port_range, values.domain_name, values.open_external_udp_server, values.cr_server_external_port);
-                if (start_process === "SUCCESS")
-                {
-                    handleClickStartDialog();
-                }
-                else
-                {
+            let startStatus = await peerplay_cr_server_status(false);
+            if (startStatus.started === false) {
+                const start_process = await peerplay_cr_server_start(data.uuid, values.minimal_port_range, values.domain_name, values.open_external_udp_server, values.cr_server_external_port);
+                if (start_process === "SUCCESS") {
+                    while (startStatus.running === false) {
+                        startStatus = await peerplay_cr_server_status(false);
+                        if (startStatus.started === false) {
+                            handleClickCannotStartDialog();
+                            break; // Ajoutez cette ligne si vous souhaitez sortir de la boucle après avoir affiché l'erreur
+                        }
+                        await new Promise(resolve => setTimeout(resolve, 1000)); // Attendez 1 seconde avant de continuer la boucle
+                    }
+                    if (startStatus.running === true && startStatus.started === true){
+                        handleClickStartDialog();
+                    }
+                } else {
                     error_at_start = start_process;
                     handleClickCannotStartDialog();
                 }
@@ -104,19 +112,12 @@ export default function Page(props) {
     return (
         <React.Fragment>
             <Dialog maxWidth="md" open={openStartDialog} onClose={handleCloseStartDialog}>
-                <DialogTitle>Procedure de Demarrage de Peerplay CR Server Lancé</DialogTitle>
+                <DialogTitle>Peerplay CR Server Lancé</DialogTitle>
                 <DialogContent>
-                    <DialogContentText>Le demarrage de Peerplay CR Server prend approximativement 10 secondes</DialogContentText>
-                    <DialogContentText>Si l'icon redevient grise, veuillez redemarrer Peerplay en Mode Diagnostic</DialogContentText>
-                </DialogContent>
-                <DialogContent>
-                    <DialogContentText>{"Minimal Port Range : " + formik.values.minimal_port_range}</DialogContentText>
+                    <DialogContentText>Serveur Peerplay CR Démarré avec succés</DialogContentText>
                 </DialogContent>
                 <DialogContent>
                     <DialogContentText>{"Domain Name : '" + formik.values.domain_name + "'"}</DialogContentText>
-                </DialogContent>
-                <DialogContent>
-                    <DialogContentText>{"External UDP Server Opened : " + formik.values.open_external_udp_server.toString()}</DialogContentText>
                 </DialogContent>
                 <DialogContent>
                     {formik.values.open_external_udp_server === true ? <DialogContentText>{`External UDP Server Opened (Accessible by Public API): ${5985 + formik.values.minimal_port_range}`}</DialogContentText> : <DialogContentText></DialogContentText>}
@@ -139,9 +140,9 @@ export default function Page(props) {
                     <DialogContentText sx={{ fontWeight: 'bold' }}>Base de Données P2P (TCP): Privé:5983 / Public:{5983 + sauvegarde.minimal_port_range}</DialogContentText>
                     <DialogContentText>Permet de synchroniser les données necessaire a la communication P2P en temps réel</DialogContentText>
                     <Divider />
-                    {sauvegarde.domain_name !== "" ? <DialogContentText sx={{ fontWeight: 'bold' }}>Nom de Domaine Actif et Redirigeant vers votre ordinateur: {sauvegarde.domain_name}</DialogContentText>: <DialogContentText></DialogContentText>}
-                    {sauvegarde.domain_name !== "" ? <DialogContentText>Permet de remplacer votre Adresse IP Public par une Adresse Lisible</DialogContentText>: <DialogContentText></DialogContentText>}
-                    {sauvegarde.domain_name !== "" ? <Divider />: <DialogContentText></DialogContentText>}
+                    {sauvegarde.domain_name !== "" ? <DialogContentText sx={{ fontWeight: 'bold' }}>Nom de Domaine Actif et Redirigeant vers votre ordinateur: {sauvegarde.domain_name}</DialogContentText> : <DialogContentText></DialogContentText>}
+                    {sauvegarde.domain_name !== "" ? <DialogContentText>Permet de remplacer votre Adresse IP Public par une Adresse Lisible</DialogContentText> : <DialogContentText></DialogContentText>}
+                    {sauvegarde.domain_name !== "" ? <Divider /> : <DialogContentText></DialogContentText>}
                     {sauvegarde.open_external_udp_server === true ? <DialogContentText sx={{ fontWeight: 'bold' }}>{`Serveur API Public (TCP): Privé:5985 / Public:${5985 + sauvegarde.minimal_port_range}`}</DialogContentText> : <DialogContentText></DialogContentText>}
                     {sauvegarde.open_external_udp_server === true ? <DialogContentText sx={{ fontWeight: 'bold' }}>{`Serveur UDP Externe (TCP ET UDP): Privé: ${sauvegarde.cr_server_external_port} / Public:${sauvegarde.cr_server_external_port + sauvegarde.minimal_port_range}`}</DialogContentText> : <DialogContentText></DialogContentText>}
                     {sauvegarde.open_external_udp_server === true ? <DialogContentText>Optionnel : Permet d'autoriser aux clients ne pouvant pas communiquer en P2P d'utiliser votre serveur comme relais</DialogContentText> : <DialogContentText></DialogContentText>}
@@ -167,9 +168,7 @@ export default function Page(props) {
                 <DialogTitle>Impossible de Demarrer Peerplay CR SERVER</DialogTitle>
                 <DialogContent>
                     <DialogContentText>Une Erreur est survenue pendant le demarrage de Peerplay CR Server</DialogContentText>
-                </DialogContent>
-                <DialogContent>
-                    <DialogContentText>{error_at_start}</DialogContentText>
+                    <DialogContentText>Veuillez redemarrez Peerplay en mode Diagnostic</DialogContentText>
                 </DialogContent>
                 <DialogActions>
                     <Button color="primary" onClick={handleCloseCannotStartDialog}>
@@ -179,7 +178,7 @@ export default function Page(props) {
             </Dialog>
             <Grid container>
                 <Grid item xs={13} md={5}>
-                    <Box py={3} display="flex" bgcolor="action.selected" style={{minHeight: '620px', height: '100%'}}>
+                    <Box py={3} display="flex" bgcolor="action.selected" style={{ minHeight: '620px', height: '100%' }}>
                         <Box>
                             <Container>
                                 <Typography variant="h5" component="h5" gutterBottom={true}>{content['header']}</Typography>
@@ -196,62 +195,62 @@ export default function Page(props) {
                             <form noValidate onSubmit={formik.handleSubmit}>
                                 <Grid container spacing={2}>
                                     <Grid item xs={12}>
-                                    <Box>
-                                        <TextField id="minimal_port_range"
-                                            variant="outlined"
-                                            fullWidth
-                                            name="minimal_port_range"
-                                            type="number"
-                                            onChange={formik.handleChange}
-                                            value={formik.values.minimal_port_range}
-                                            label="Port Minimal Ouvrable"
-                                            helperText="Cette valeur se trouve dans les parametres de votre box internet (IPV4)"
-                                        />
-                                        <TextField id="domain_name"
-                                            variant="outlined"
-                                            fullWidth
-                                            name="domain_name"
-                                            type="text"
-                                            onChange={formik.handleChange}
-                                            value={formik.values.domain_name}
-                                            label="Nom de Domaine"
-                                            helperText="Partager un nom de domaine a la place de votre adresse ip public (Recommandé)"
-                                        />
-                                    </Box>
-                                    <Box py={1}>
-                                        <FormControlLabel
-                                            control={
-                                                <Checkbox
-                                                    checked={formik.values.open_external_udp_server}
-                                                    onChange={formik.handleChange}
-                                                    name="open_external_udp_server"
-                                                    color="primary"
-                                                />
-                                            }
-                                            label="Ouvrir le Serveur UDP 'EXTERNE' ?"
-                                        />
-                                        <TextField id="cr_server_external_port"
-                                            variant="outlined"
-                                            fullWidth
-                                            name="cr_server_external_port"
-                                            type="number"
-                                            onChange={formik.handleChange}
-                                            value={formik.values.cr_server_external_port}
-                                            label="Port a Utiliser" />
-                                        {formik.touched.open_external_udp_server && formik.errors.open_external_udp_server ? (
-                                            <div>{formik.errors.open_external_udp_server}</div>
-                                        ) : null}
+                                        <Box>
+                                            <TextField id="minimal_port_range"
+                                                variant="outlined"
+                                                fullWidth
+                                                name="minimal_port_range"
+                                                type="number"
+                                                onChange={formik.handleChange}
+                                                value={formik.values.minimal_port_range}
+                                                label="Port Minimal Ouvrable"
+                                                helperText="Cette valeur se trouve dans les parametres de votre box internet (IPV4)"
+                                            />
+                                            <TextField id="domain_name"
+                                                variant="outlined"
+                                                fullWidth
+                                                name="domain_name"
+                                                type="text"
+                                                onChange={formik.handleChange}
+                                                value={formik.values.domain_name}
+                                                label="Nom de Domaine"
+                                                helperText="Partager un nom de domaine a la place de votre adresse ip public (Recommandé)"
+                                            />
+                                        </Box>
+                                        <Box py={1}>
+                                            <FormControlLabel
+                                                control={
+                                                    <Checkbox
+                                                        checked={formik.values.open_external_udp_server}
+                                                        onChange={formik.handleChange}
+                                                        name="open_external_udp_server"
+                                                        color="primary"
+                                                    />
+                                                }
+                                                label="Ouvrir le Serveur UDP 'EXTERNE' ?"
+                                            />
+                                            <TextField id="cr_server_external_port"
+                                                variant="outlined"
+                                                fullWidth
+                                                name="cr_server_external_port"
+                                                type="number"
+                                                onChange={formik.handleChange}
+                                                value={formik.values.cr_server_external_port}
+                                                label="Port a Utiliser" />
+                                            {formik.touched.open_external_udp_server && formik.errors.open_external_udp_server ? (
+                                                <div>{formik.errors.open_external_udp_server}</div>
+                                            ) : null}
                                         </Box>
                                         <Stack direction="column" spacing={1}>
-                                        <Stack direction="row" spacing={1}>
-                                            <Button type="submit" fullWidth variant="contained" color="primary">
-                                                {content['primary-action']}
-                                            </Button>
-                                            <Button fullWidth variant="contained" color="error" onClick={peerplay_cr_server_stop}>
-                                                {content['secondary-action']}
-                                            </Button>
-                                        </Stack>
-                                            <Button fullWidth variant="contained" style={{ backgroundColor: '#757575'}} onClick={handleClickGetPortsDialog}>
+                                            <Stack direction="row" spacing={1}>
+                                                <Button type="submit" fullWidth variant="contained" color="primary">
+                                                    {content['primary-action']}
+                                                </Button>
+                                                <Button fullWidth variant="contained" color="error" onClick={peerplay_cr_server_stop}>
+                                                    {content['secondary-action']}
+                                                </Button>
+                                            </Stack>
+                                            <Button fullWidth variant="contained" style={{ backgroundColor: '#757575' }} onClick={handleClickGetPortsDialog}>
                                                 {content['other-action']}
                                             </Button>
                                         </Stack>

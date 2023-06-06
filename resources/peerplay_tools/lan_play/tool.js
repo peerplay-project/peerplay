@@ -46,7 +46,6 @@ export function lan_play_start(server_ip) {
         {
             fs.chmodSync(executablePath, 0o755);
         }
-        console.log(executablePath)
         child_process = execFile(`${executablePath}`, ['--relay-server-addr', server_ip.split(' ')[0].replace(/[&<>;'"]/g, "")])
         child_process.on('exit', () => {
             child_process = undefined;

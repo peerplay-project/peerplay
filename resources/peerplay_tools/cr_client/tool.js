@@ -47,7 +47,9 @@ export function peerplay_cr_client_start(server_ip) {
                 platform,
                 executableName
             );
-            fs.chmodSync(executablePath, 0o755);
+            if (platform !== "windows"){
+                fs.chmodSync(executablePath, 0o755);
+            }
             let count = 0;
             console_db_patched_app.forEach((console) => {
                 child_processes.push(

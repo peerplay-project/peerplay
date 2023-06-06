@@ -70,12 +70,12 @@ export default function Page(props) {
           use_localhost_cr_server: Yup.boolean().test(
             'local_server_check',
             'Cannot use Localhost CR_SERVER if Not Opened',
-            function (value) {
+            async function (value) {
               if (value) {
-                return peerplay_cr_server_status().started !== false;
+                return await (await peerplay_cr_server_status(false)).started !== false;
               } else {
                 if (
-                  peerplay_cr_server_status().started === false &&
+                  await (await peerplay_cr_server_status(false)).started === false &&
                   this.parent.cr_server_address === 'localhost:5981'
                 ) {
                   return false;
@@ -91,7 +91,7 @@ export default function Page(props) {
           let serverAddress = '';
       
           try {
-            if (values.use_localhost_cr_server && peerplay_cr_server_status().running === true) {
+            if (values.use_localhost_cr_server && (await peerplay_cr_server_status(false)).running === true) {
               values.cr_server_address_api = "localhost:5985";
               const response = await axios.get(url);
               if (response.status === 200) {

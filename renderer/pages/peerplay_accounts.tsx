@@ -123,30 +123,6 @@ const accountStore = new Store<AccountData>({
 });
 
 export default function Page(props) {
-    const [value, setValue] = React.useState(0);
-    const [showLoginPassword, setShowLoginPassword] = React.useState(false);
-    const handleClickShowLoginPassword = () => setShowLoginPassword((show) => !show);
-    const handleMouseDownLoginPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
-        event.preventDefault();
-    };
-    const [showRegisterPassword, setShowRegisterPassword] = React.useState(false);
-    const handleClickShowRegisterPassword = () => setShowRegisterPassword((show) => !show);
-    const handleMouseDownRegisterPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
-        event.preventDefault();
-    };
-    const [showResetOldPassword, setShowResetOldPassword] = React.useState(false);
-    const handleClickShowResetOldPassword = () => setShowResetOldPassword((show) => !show);
-    const handleMouseDownResetOldPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
-        event.preventDefault();
-    };
-    const [showResetNewPassword, setShowResetNewPassword] = React.useState(false);
-    const handleClickShowResetNewPassword = () => setShowResetNewPassword((show) => !show);
-    const handleMouseDownResetNewPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
-        event.preventDefault();
-    };
-    const handleChange = (event: React.SyntheticEvent, newValue: number) => {
-        setValue(newValue);
-    };
     const content = {
         'register_submit': 'Register',
         'login_submit': 'Login',
@@ -519,6 +495,31 @@ export default function Page(props) {
     const [openErrorDialog, setOpenErrorDialog] = React.useState(false);
     const handleCloseErrorDialog = () => setOpenErrorDialog(false);
     const handleClickErrorDialog = () => setOpenErrorDialog(true);
+    // Use State
+    const [value, setValue] = React.useState(0);
+    const [showLoginPassword, setShowLoginPassword] = React.useState(false);
+    const handleClickShowLoginPassword = () => setShowLoginPassword((show) => !show);
+    const handleMouseDownLoginPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
+        event.preventDefault();
+    };
+    const [showRegisterPassword, setShowRegisterPassword] = React.useState(false);
+    const handleClickShowRegisterPassword = () => setShowRegisterPassword((show) => !show);
+    const handleMouseDownRegisterPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
+        event.preventDefault();
+    };
+    const [showResetOldPassword, setShowResetOldPassword] = React.useState(false);
+    const handleClickShowResetOldPassword = () => setShowResetOldPassword((show) => !show);
+    const handleMouseDownResetOldPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
+        event.preventDefault();
+    };
+    const [showResetNewPassword, setShowResetNewPassword] = React.useState(false);
+    const handleClickShowResetNewPassword = () => setShowResetNewPassword((show) => !show);
+    const handleMouseDownResetNewPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
+        event.preventDefault();
+    };
+    const handleChange = (event: React.SyntheticEvent, newValue: number) => {
+        setValue(newValue);
+    };
     // @ts-ignore
     return (
         <React.Fragment>
