@@ -24,9 +24,6 @@ let toolInstallDialogContent = {
 }
 
 function Home() {
-const [openToolInstallDialog, setOpenToolInstallDialog] = React.useState(false);
-const handleCloseToolInstallDialog = () => setOpenToolInstallDialog(false);
-const handleClickToolInstallDialog = () => setOpenToolInstallDialog(true);
 const Install_Drivers = () =>{
     switch (os.platform()) {
         case 'win32':
@@ -65,6 +62,10 @@ const  Install_External_Tool = (tool_codename) => {
             break;
     }
 }
+
+const [openToolInstallDialog, setOpenToolInstallDialog] = React.useState(false);
+const handleCloseToolInstallDialog = () => setOpenToolInstallDialog(false);
+const handleClickToolInstallDialog = () => setOpenToolInstallDialog(true);
     return (
         <React.Fragment>
             <Dialog open={openToolInstallDialog} onClose={handleCloseToolInstallDialog}>

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import Layout from '../layout'
-
+import { SnackbarProvider } from 'notistack';
+import React from 'react';
 export default function MyApp({ Component, pageProps }) {
   useEffect(() => {
     // Désactiver le défilement de la page
@@ -14,8 +15,13 @@ export default function MyApp({ Component, pageProps }) {
     };
   }, []);
   return (
-    <Layout>
-      <Component {...pageProps} />
-    </Layout>
+    <SnackbarProvider maxSnack={2} anchorOrigin={{
+      vertical: 'bottom',
+      horizontal: 'left',
+    }}>
+      <Layout>
+        <Component {...pageProps} />
+      </Layout>
+    </SnackbarProvider>
   )
 }
