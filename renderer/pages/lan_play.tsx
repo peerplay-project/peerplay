@@ -8,10 +8,10 @@ import TextField from '@mui/material/TextField';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import Store from 'electron-store';
-import { Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Checkbox, FormControlLabel, FormHelperText } from '@mui/material';
 import { lan_play_start, lan_play_status, lan_play_stop } from '../../resources/peerplay_tools/lan_play/tool';
 import { peerplay_cr_client_status } from '../../resources/peerplay_tools/cr_client/tool';
 import axios from 'axios';
+import { useSnackbar } from 'notistack';
 
 // Définir la forme des données à stocker
 interface Data {
@@ -19,6 +19,7 @@ interface Data {
 }
 
 export default function Page(props) {
+    const { enqueueSnackbar } = useSnackbar();
     const content = {
         'header': 'Client Lan Play',
         'description1': "Lan Play est un programme conçu par spacemeowx2, utilisé et integré par Peerplay",
@@ -58,66 +59,23 @@ export default function Page(props) {
                         if (peerplay_cr_client_status() === false && lan_play_status() === false) {
                             const script = lan_play_start(values.lan_play_server_address)
                             if (script === 'SUCCESS') {
-                                handleClickStartDialog();
+                                enqueueSnackbar('Lanplay lancé avec succés', { variant: 'success' })
                             }
                         } else {
-                            handleClickAlreadyStartedDialog();
+                            enqueueSnackbar('Lan Play ou Peerplay CR Client est déja lancé', { variant: 'warning' })
                         }
                     }
                 } else {
-                    handleClickCannotConnectDialog();
+                    enqueueSnackbar('Impossible de se connecter au serveur cible', { variant: 'error' })
                 }
             } catch (error) {
                 console.log(error);
-                handleClickCannotConnectDialog();
+                enqueueSnackbar('Impossible de se connecter au serveur cible', { variant: 'error' })
             }
         },
     });
-
-    const [openStartDialog, setOpenStartDialog] = React.useState(false);
-    const handleCloseStartDialog = () => setOpenStartDialog(false);
-    const handleClickStartDialog = () => setOpenStartDialog(true);
-    const [openAlreadyStartedDialog, setOpenAlreadyStartedDialog] = React.useState(false);
-    const handleCloseAlreadyStartedDialog = () => setOpenAlreadyStartedDialog(false);
-    const handleClickAlreadyStartedDialog = () => setOpenAlreadyStartedDialog(true);
-    const [openCannotConnectDialog, setOpenCannotConnectDialog] = React.useState(false);
-    const handleCloseCannotConnectDialog = () => setOpenCannotConnectDialog(false);
-    const handleClickCannotConnectDialog = () => setOpenCannotConnectDialog(true);
     return (
         <React.Fragment>
-            <Dialog open={openStartDialog} onClose={handleCloseStartDialog}>
-                <DialogTitle>Lan Play démarré avec succés</DialogTitle>
-                <DialogContent>
-                    <DialogContentText>{"Serveur Lan Play Ciblé : " + formik.values.lan_play_server_address}</DialogContentText>
-                </DialogContent>
-                <DialogActions>
-                    <Button color="primary" onClick={handleCloseStartDialog}>
-                        Close
-                    </Button>
-                </DialogActions>
-            </Dialog>
-            <Dialog open={openAlreadyStartedDialog} onClose={handleCloseAlreadyStartedDialog}>
-                <DialogTitle>Peerplay CR Client ou Lan Play est deja lancé</DialogTitle>
-                <DialogContent>
-                    <DialogContentText>Peerplay CR Client ou Lan Play est deja lancé, impossible d'ouvrir une deuxieme instance</DialogContentText>
-                </DialogContent>
-                <DialogActions>
-                    <Button color="primary" onClick={handleCloseAlreadyStartedDialog}>
-                        Close
-                    </Button>
-                </DialogActions>
-            </Dialog>
-            <Dialog open={openCannotConnectDialog} onClose={handleCloseCannotConnectDialog}>
-                <DialogTitle>Connexion Impossible</DialogTitle>
-                <DialogContent>
-                    <DialogContentText>Impossible de se connecter au serveur</DialogContentText>
-                </DialogContent>
-                <DialogActions>
-                    <Button color="primary" onClick={handleCloseCannotConnectDialog}>
-                        Close
-                    </Button>
-                </DialogActions>
-            </Dialog>
             <Grid container>
                 <Grid item xs={12} md={5}>
                     <Box py={9} display="flex" bgcolor="action.selected" style={{ minHeight: '620px', height: '100%' }}>
@@ -153,7 +111,16 @@ export default function Page(props) {
                                             <Button type="submit" fullWidth variant="contained" color="primary">
                                                 {content['primary-action']}
                                             </Button>
-                                            <Button fullWidth variant="contained" color="secondary" onClick={lan_play_stop}>
+                                            <Button fullWidth variant="contained" color="secondary" onClick={() => {
+                                                if (lan_play_status() === true){
+                                                    lan_play_stop()
+                                                    enqueueSnackbar('Lan Play a été arrété avec succés', { variant: 'success' })
+                                                }
+                                                else
+                                                {
+                                                    enqueueSnackbar('Lan Play est déja arrété', { variant: 'warning' })
+                                                }
+                                                }}>
                                                 {content['secondary-action']}
                                             </Button>
                                         </Box>

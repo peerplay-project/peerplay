@@ -12,6 +12,7 @@ import { Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, C
 import { peerplay_cr_server_status, peerplay_cr_server_start, peerplay_cr_server_stop } from '../../resources/peerplay_tools/cr_server/tool';
 import { v5 as uuidv5, v4 as uuidv4 } from 'uuid';
 import Divider from "@mui/material/Divider";
+import { useSnackbar } from 'notistack';
 interface Data {
     uuid: string,
     minimal_port_range: number,
@@ -46,7 +47,7 @@ export default function Page(props) {
         ...valeursParDefaut,
         ...save_data,
     };
-    let error_at_start = "";
+    const { enqueueSnackbar } = useSnackbar();
     const formik = useFormik({
         initialValues: sauvegarde,
         validationSchema: Yup.object().shape({
@@ -76,58 +77,35 @@ export default function Page(props) {
             if (startStatus.started === false) {
                 const start_process = await peerplay_cr_server_start(data.uuid, values.minimal_port_range, values.domain_name, values.open_external_udp_server, values.cr_server_external_port);
                 if (start_process === "SUCCESS") {
+                    enqueueSnackbar('Peerplay CR Serveur en cours de démarrage', { variant: 'info' });
                     while (startStatus.running === false) {
                         startStatus = await peerplay_cr_server_status(false);
                         if (startStatus.started === false) {
-                            handleClickCannotStartDialog();
+                            enqueueSnackbar('Impossible de Démarrer Peerplay CR Server', { variant: 'error' })
                             break; // Ajoutez cette ligne si vous souhaitez sortir de la boucle après avoir affiché l'erreur
                         }
                         await new Promise(resolve => setTimeout(resolve, 1000)); // Attendez 1 seconde avant de continuer la boucle
                     }
-                    if (startStatus.running === true && startStatus.started === true){
-                        handleClickStartDialog();
+                    if (startStatus.running === true && startStatus.started === true) {
+                        enqueueSnackbar('Peerplay CR Server a été demarré avec succés', { variant: 'success' })
                     }
                 } else {
-                    error_at_start = start_process;
-                    handleClickCannotStartDialog();
+                    enqueueSnackbar('Impossible de Démarrer Peerplay CR Server', { variant: 'error' })
                 }
             } else {
-                handleClickAlreadyStartedDialog();
+                if (startStatus.running === true) {
+                    enqueueSnackbar('Peerplay CR Server est deja démarré', { variant: 'warning' })
+                } else {
+                    enqueueSnackbar('Peerplay CR Server est en cours de démarrage', { variant: 'warning' })
+                }
             }
         },
     });
-
-    const [openStartDialog, setOpenStartDialog] = React.useState(false);
-    const handleCloseStartDialog = () => setOpenStartDialog(false);
-    const handleClickStartDialog = () => setOpenStartDialog(true);
     const [openGetPortsDialog, setOpenGetPortsDialog] = React.useState(false);
     const handleCloseGetPortsDialog = () => setOpenGetPortsDialog(false);
     const handleClickGetPortsDialog = () => setOpenGetPortsDialog(true);
-    const [openCannotStartDialog, setOpenCannotStartDialog] = React.useState(false);
-    const handleCloseCannotStartDialog = () => setOpenCannotStartDialog(false);
-    const handleClickCannotStartDialog = () => setOpenCannotStartDialog(true);
-    const [openAlreadyStartedDialog, setOpenAlreadyStartedDialog] = React.useState(false);
-    const handleCloseAlreadyStartedDialog = () => setOpenAlreadyStartedDialog(false);
-    const handleClickAlreadyStartedDialog = () => setOpenAlreadyStartedDialog(true);
     return (
         <React.Fragment>
-            <Dialog maxWidth="md" open={openStartDialog} onClose={handleCloseStartDialog}>
-                <DialogTitle>Peerplay CR Server Lancé</DialogTitle>
-                <DialogContent>
-                    <DialogContentText>Serveur Peerplay CR Démarré avec succés</DialogContentText>
-                </DialogContent>
-                <DialogContent>
-                    <DialogContentText>{"Domain Name : '" + formik.values.domain_name + "'"}</DialogContentText>
-                </DialogContent>
-                <DialogContent>
-                    {formik.values.open_external_udp_server === true ? <DialogContentText>{`External UDP Server Opened (Accessible by Public API): ${5985 + formik.values.minimal_port_range}`}</DialogContentText> : <DialogContentText></DialogContentText>}
-                </DialogContent>
-                <DialogActions>
-                    <Button color="primary" onClick={handleCloseStartDialog}>
-                        Close
-                    </Button>
-                </DialogActions>
-            </Dialog>
             <Dialog maxWidth="md" open={openGetPortsDialog} onClose={handleCloseGetPortsDialog}>
                 <DialogTitle>Liste des Ports a Ouvrir pour utiliser Peerplay CR Server</DialogTitle>
                 <DialogContent>
@@ -149,29 +127,6 @@ export default function Page(props) {
                 </DialogContent>
                 <DialogActions>
                     <Button color="primary" onClick={handleCloseGetPortsDialog}>
-                        Close
-                    </Button>
-                </DialogActions>
-            </Dialog>
-            <Dialog maxWidth="md" open={openAlreadyStartedDialog} onClose={handleCloseAlreadyStartedDialog}>
-                <DialogTitle>Peerplay CR Server est deja lancé</DialogTitle>
-                <DialogContent>
-                    <DialogContentText>Peerplay CR Server est deja lancé, impossible d'ouvrir une deuxieme instance</DialogContentText>
-                </DialogContent>
-                <DialogActions>
-                    <Button color="primary" onClick={handleCloseAlreadyStartedDialog}>
-                        Close
-                    </Button>
-                </DialogActions>
-            </Dialog>
-            <Dialog maxWidth="md" open={openCannotStartDialog} onClose={handleCloseCannotStartDialog}>
-                <DialogTitle>Impossible de Demarrer Peerplay CR SERVER</DialogTitle>
-                <DialogContent>
-                    <DialogContentText>Une Erreur est survenue pendant le demarrage de Peerplay CR Server</DialogContentText>
-                    <DialogContentText>Veuillez redemarrez Peerplay en mode Diagnostic</DialogContentText>
-                </DialogContent>
-                <DialogActions>
-                    <Button color="primary" onClick={handleCloseCannotStartDialog}>
                         Close
                     </Button>
                 </DialogActions>
@@ -246,7 +201,20 @@ export default function Page(props) {
                                                 <Button type="submit" fullWidth variant="contained" color="primary">
                                                     {content['primary-action']}
                                                 </Button>
-                                                <Button fullWidth variant="contained" color="error" onClick={peerplay_cr_server_stop}>
+                                                <Button fullWidth variant="contained" color="error" onClick={async () => {
+                                                    if ((await peerplay_cr_server_status(false)).started === true) {
+                                                        if ((await (await peerplay_cr_server_status(false)).running === true)) {
+                                                            peerplay_cr_server_stop();
+                                                            enqueueSnackbar('Peerplay CR Server a été arrété avec succés', { variant: 'success' })
+                                                        }
+                                                        else {
+                                                            enqueueSnackbar('Impossible de fermer Peerplay CR Server si il est en cours de demarrage', { variant: 'error' })
+                                                        }
+                                                    }
+                                                    else {
+                                                        enqueueSnackbar('Peerplay CR Server est déja arrété', { variant: 'warning' })
+                                                    }
+                                                }}>
                                                     {content['secondary-action']}
                                                 </Button>
                                             </Stack>

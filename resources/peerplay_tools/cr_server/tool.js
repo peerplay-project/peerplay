@@ -71,7 +71,7 @@ export function peerplay_cr_server_stop() {
     }
 }
 
-export async function peerplay_cr_server_status(request,requester) {
+export async function peerplay_cr_server_status(request) {
     if (started === true) {
         if (request === true){
             try {

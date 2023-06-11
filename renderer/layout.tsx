@@ -29,6 +29,7 @@ import { peerplay_cr_client_status, peerplay_cr_client_version } from '../resour
 import { peerplay_cr_server_status, peerplay_cr_server_version } from '../resources/peerplay_tools/cr_server/tool'
 import { lan_play_status, lan_play_version } from '../resources/peerplay_tools/lan_play/tool'
 import { ManageAccounts } from "@mui/icons-material";
+
 const drawerWidth = 220;
 
 const openedMixin = (theme: Theme): CSSObject => ({
@@ -279,7 +280,7 @@ export default function Layout({ children }) {
             </Drawer>
             <Box component="main" sx={{ flexGrow: 1, p: 3 }} style={{ textAlign: "center" }}>
                 <DrawerHeader />
-                {children}
+                    {children}
             </Box>
         </Box>
     );

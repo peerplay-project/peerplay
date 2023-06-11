@@ -11,7 +11,6 @@ import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import Store from 'electron-store';
 import axios from 'axios';
-import Divider from "@mui/material/Divider";
 import { Delete, PermDeviceInformation } from '@mui/icons-material';
 import {
     Dialog,
@@ -30,10 +29,9 @@ import {
     RadioGroup,
     Radio,
     FormControlLabel,
-    FormControl,
-    FormLabel,
     InputAdornment
 } from '@mui/material';
+import { useSnackbar } from 'notistack';
 let Reset_Key = ""
 let Procedure = ""
 let Error_Code = ""
@@ -59,6 +57,7 @@ let console_gateway: ConsoleList = {
     XBOX_SERIES: "",
     SWITCH: "",
 }
+
 const XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest;
 interface ConsoleList {
     PS3: string,
@@ -181,7 +180,7 @@ export default function Page(props) {
                         Error_Description = "La connexion au Serveur Peerplay CR a Échoué."
                         Error_Solution = "Veuillez vérifier votre connexion internet, si elle n'est pas en cause contactez l'hôte du serveur auquel vous etes relié ou le support de Peerplay (si vous utilisez le serveur integré a l'application et que ce dernier est bien ouvert)"
                     }
-                    handleClickErrorDialog();
+                    enqueueSnackbar(Error_Description, { variant: 'error' });
                 }
             }
         } catch (error) {
@@ -218,7 +217,7 @@ export default function Page(props) {
                 Error_Description = "La connexion au Serveur Peerplay CR a Échoué."
                 Error_Solution = "Veuillez vérifier votre connexion internet, si elle n'est pas en cause contactez l'hôte du serveur auquel vous êtes relié ou le support de Peerplay (si vous utilisez le serveur integré a l'application et que celui çi est bien ouvert)"
             }
-            handleClickErrorDialog();
+            enqueueSnackbar(Error_Description, { variant: 'error' });
         }
     }
 
@@ -310,7 +309,7 @@ export default function Page(props) {
                     Error_Description = "La connexion au Serveur Peerplay CR a Échoué."
                     Error_Solution = "Veuillez vérifier votre connexion internet, si elle n'est pas en cause contactez l'hôte du serveur auquel vous etes relié ou le support de Peerplay (si vous utilisez le serveur integré a l'application et que ce dernier est bien ouvert)"
                 }
-                handleClickErrorDialog();
+                enqueueSnackbar(Error_Description, { variant: 'error' });
             }
         }
     });
@@ -333,7 +332,7 @@ export default function Page(props) {
                 if (response.status === 200) {
                     const responseData = response.data;
                     storeAddAccount({ username: responseData.username, email: values.email, password: values.password });
-                    handleClickConnectDialog();
+                    enqueueSnackbar("Authentification Reussi, Bienvenue " + responseData.username, { variant: 'success' });
                 }
             } catch (error) {
                 if (error.response) {
@@ -369,7 +368,7 @@ export default function Page(props) {
                     Error_Description = "La connexion au Serveur Peerplay CR a Échoué."
                     Error_Solution = "Veuillez vérifier votre connexion internet, si elle n'est pas en cause contactez l'hôte du serveur auquel vous êtes relié ou le support de Peerplay (si vous utilisez le serveur integré a l'application et que celui çi est bien ouvert)"
                 }
-                handleClickErrorDialog();
+                enqueueSnackbar(Error_Description, { variant: 'error' });
             }
         },
     });
@@ -421,7 +420,7 @@ export default function Page(props) {
                     Error_Code = 'UNEXPECTED_RESPONSE'
                     Error_Description = "La Réponse que vous rencontrez est non prévue"
                     Error_Solution = "Veuillez contacter le support de Peerplay"
-                    handleClickErrorDialog()
+                    enqueueSnackbar(Error_Description + "," + Error_Solution, { variant: 'error' });
                 }
             } catch (error) {
                 if (error.response) {
@@ -459,7 +458,7 @@ export default function Page(props) {
                     Error_Description = "La connexion au Serveur Peerplay CR a Échoué."
                     Error_Solution = "Veuillez vérifier votre connexion internet, si elle n'est pas en cause contactez l'hôte du serveur auquel vous etes relié ou le support de Peerplay (si vous utilisez le serveur integré a l'application)"
                 }
-                handleClickErrorDialog();
+                enqueueSnackbar(Error_Description, { variant: 'error' });
             }
         }
     });
@@ -520,6 +519,7 @@ export default function Page(props) {
     const handleChange = (event: React.SyntheticEvent, newValue: number) => {
         setValue(newValue);
     };
+    const { enqueueSnackbar } = useSnackbar();
     // @ts-ignore
     return (
         <React.Fragment>
