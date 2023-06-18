@@ -752,7 +752,7 @@ export default function Page(props) {
                                     account.current_filter = "undefined"
                                 }
                                 else {
-                                    account.current_filter = `${responseData.actual_filter.network_type}-${responseData.actual_filter.connect_type}/${responseData.actual_filter.password}/${responseData.actual_filter.pool || 'undefined'}`;
+                                    account.current_filter = `${responseData.actual_filter.password}/${responseData.actual_filter.pool || 'undefined'}`;
                                 }
                             }
                         } catch (error) {
@@ -1040,8 +1040,8 @@ export default function Page(props) {
                                             <Grid item md={9.5}>
                                                 <Stack spacing={0.1}>
                                                     <ListItemText primary={account.username} secondary={account.email} />
+                                                    <Typography variant="caption">{account.current_filter.split("/")[0]}</Typography>
                                                     <Typography variant="caption">{account.current_filter.split("/")[1]}</Typography>
-                                                    <Typography variant="caption">{account.current_filter.split("/")[2]}</Typography>
                                                 </Stack>
                                             </Grid>
                                             <Grid item md={2.5}>
