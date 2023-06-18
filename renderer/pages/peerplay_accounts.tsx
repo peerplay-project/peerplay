@@ -7,7 +7,8 @@ import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
-import { useFormik } from 'formik';
+import KeyIcon from '@mui/icons-material/Key';
+import { Field, Form, Formik, useFormik } from 'formik';
 import * as Yup from 'yup';
 import Store from 'electron-store';
 import axios from 'axios';
@@ -29,7 +30,10 @@ import {
     RadioGroup,
     Radio,
     FormControlLabel,
-    InputAdornment
+    InputAdornment,
+    MenuItem,
+    Switch,
+    Menu
 } from '@mui/material';
 import { useSnackbar } from 'notistack';
 let Reset_Key = ""
@@ -39,6 +43,7 @@ let Error_Description = ""
 let Error_Solution = ""
 let req_email = ""
 let req_username = ""
+let targetedAccount = { username: "", email: "", password: "" };
 let console_ip: ConsoleList = {
     PS3: "",
     PS4: "",
@@ -112,6 +117,7 @@ interface AccountData {
     username: string,
     email: string,
     password: string,
+    current_filter: string,
 }
 
 const cr_client_store = new Store<CRClientData>({
@@ -120,7 +126,262 @@ const cr_client_store = new Store<CRClientData>({
 const accountStore = new Store<AccountData>({
     name: 'accounts_list',
 });
+const PasswordKeyForm = ({ handleClose }) => {
+    const { enqueueSnackbar } = useSnackbar();
+    const validationSchema = Yup.object({
+        random_password: Yup.boolean(),
+        network_key: Yup
+            .string()
+            .max(32, 'Password exceeds the limit of 32 characters')
+            .nullable(),
+    });
 
+    const formik = useFormik({
+        initialValues: {
+            random_password: false,
+            network_key: '',
+        },
+        validationSchema: validationSchema,
+        onSubmit: async (values) => {
+            if (values.random_password) {
+                values.network_key = "";
+            }
+            handleClose()
+            console.log("trying to get JWT")
+            console.log(values)
+            const cr_client_data: CRClientData = cr_client_store.get('config');
+            const url = `http://${cr_client_data.cr_server_address_api}/auth/login`;
+            const params = {
+                email: targetedAccount.email,
+                password: targetedAccount.password
+            };
+            try {
+                const response = await axios.post(url, null, { params: params });
+                if (response.status === 200) {
+                    console.log("Parse JWT and use it for the next request")
+                    const token = response.data.jwt;
+                    console.log(token)
+                    let config = {
+                        method: 'post',
+                        url: `http://${cr_client_data.cr_server_address_api}/account/filter/filter_settings/password_key?random_password=${values.random_password}&network_key=${values.network_key}`,
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    };
+                    try {
+                        const response = await axios.request(config);
+                        if (response.status === 200) {
+                            console.log("Success")
+                            enqueueSnackbar('Filter Updated Successfuly', { variant: 'success' });
+                        }
+                    } catch (error) {
+                        console.log("error")
+                        if (error.response) {
+                            enqueueSnackbar("An error occured on Filter Update : " + error.response.data.code, { variant: 'error' });
+                        }
+                    }
+                }
+            } catch (error) {
+                console.log("Error")
+                enqueueSnackbar("An error occured on Authentification : " + error.response.data.code, { variant: 'error' });
+            }
+        },
+    });
+    return (
+        <div>
+            <form onSubmit={formik.handleSubmit}>
+                <Stack spacing={1}>
+                    <FormControlLabel control={<Switch id="random_password"
+                        name="random_password" onChange={formik.handleChange} />} label="Use a Random Password" />
+                    <TextField
+                        fullWidth
+                        id="network_key"
+                        name="network_key"
+                        label="Network Key"
+                        value={formik.values.network_key}
+                        onChange={formik.handleChange}
+                        error={formik.touched.network_key && Boolean(formik.errors.network_key)}
+                        helperText={formik.touched.network_key && formik.errors.network_key}
+                        disabled={formik.values.random_password}
+                    />
+                    <Button color="primary" variant="contained" fullWidth type="submit">
+                        Submit
+                    </Button>
+                </Stack>
+            </form>
+        </div>
+    );
+};
+
+const GeographicKeyForm = ({ handleClose }) => {
+    const { enqueueSnackbar } = useSnackbar();
+    const continentToFullName = {
+        AM: 'Americas',
+        EU: 'Europe',
+        AS: 'Asia',
+        AF: 'Africa',
+        OC: 'Oceania',
+    };
+
+    const [countries, setCountries] = useState([]);
+    const validationSchema = Yup.object({
+        geographic_network_type: Yup.string().required('Geographic Network Type is required'),
+        continent: Yup.string().test('continent-validation', 'Continent is required', function () {
+            const { geographic_network_type, continent } = this.parent;
+            if ((geographic_network_type === 'CONTINENTAL' || geographic_network_type === 'COUNTRY') && !continent) {
+                return false; // Validation échoue si continent est requis mais non renseigné
+            }
+            return true; // Validation réussie dans les autres cas
+        }),
+        country: Yup.string().test('country-validation', 'Country is required', function () {
+            const { geographic_network_type, continent, country } = this.parent;
+            if (geographic_network_type === 'COUNTRY' && (!continent || !country)) {
+                return false; // Validation échoue si country est requis mais non renseigné
+            }
+            return true; // Validation réussie dans les autres cas
+        })
+    });
+    const formik = useFormik({
+        initialValues: {
+            geographic_network_type: '',
+            continent: '',
+            country: '',
+        },
+        validationSchema: validationSchema,
+        onSubmit: async (values) => {
+            handleClose()
+            console.log("trying to get JWT")
+            console.log(values)
+            const cr_client_data: CRClientData = cr_client_store.get('config');
+            const url = `http://${cr_client_data.cr_server_address_api}/auth/login`;
+            const params = {
+                email: targetedAccount.email,
+                password: targetedAccount.password
+            };
+            try {
+                const response = await axios.post(url, null, { params: params });
+                if (response.status === 200) {
+                    console.log("Parse JWT and use it for the next request")
+                    const token = response.data.jwt;
+                    console.log(token)
+                    let config = {
+                        method: 'post',
+                        url: `http://${cr_client_data.cr_server_address_api}/account/filter/filter_settings/geographic_key?geographic_network_type=${values.geographic_network_type}&continent=${values.continent}&country=${values.country}`,
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    };
+                    try {
+                        const response = await axios.request(config);
+                        if (response.status === 200) {
+                            console.log("Success")
+                            enqueueSnackbar('Filter Updated Successfuly', { variant: 'success' });
+                        }
+                    } catch (error) {
+                        console.log("error")
+                        if (error) {
+                            enqueueSnackbar("An error occured on Filter Update : " + error.response.data.code, { variant: 'error' });
+                        }
+                    }
+                }
+            } catch (error) {
+                console.log("Error")
+                enqueueSnackbar("An error occured on Authentifcation : " + error.response.data.code, { variant: 'error' });
+            }
+        },
+    });
+
+    useEffect(() => {
+        const fetchCountries = async () => {
+            try {
+                const response = await fetch(
+                    `https://restcountries.com/v2/region/${continentToFullName[formik.values.continent]?.toLowerCase()}`
+                );
+                const data = await response.json();
+                setCountries(
+                    data.map((country) => ({
+                        name: country.name,
+                        code: country.alpha3Code,
+                    }))
+                );
+            } catch (error) {
+                console.error('Error fetching countries:', error);
+            }
+        };
+
+        if (formik.values.continent) {
+            fetchCountries();
+        } else {
+            setCountries([]);
+        }
+    }, [formik.values.continent]);
+
+    return (
+        <div>
+            <form onSubmit={formik.handleSubmit}>
+                <TextField
+                    fullWidth
+                    id="geographic_network_type"
+                    name="geographic_network_type"
+                    label="Geographic Network Type"
+                    select
+                    value={formik.values.geographic_network_type}
+                    onChange={formik.handleChange}
+                    error={formik.touched.geographic_network_type && Boolean(formik.errors.geographic_network_type)}
+                    helperText={formik.touched.geographic_network_type && formik.errors.geographic_network_type}
+                >
+                    <MenuItem value="WORLD">World</MenuItem>
+                    <MenuItem value="CONTINENTAL">Continental</MenuItem>
+                    <MenuItem value="COUNTRY">Country</MenuItem>
+                </TextField>
+                <TextField
+                    fullWidth
+                    id="continent"
+                    name="continent"
+                    label="Continent"
+                    select
+                    value={formik.values.continent}
+                    onChange={formik.handleChange}
+                    error={formik.touched.continent && Boolean(formik.errors.continent)}
+                    helperText={formik.touched.continent && formik.errors.continent}
+                    disabled={formik.values.geographic_network_type === 'WORLD'}
+                >
+                    <MenuItem value="AM">Americas</MenuItem>
+                    <MenuItem value="EU">Europe</MenuItem>
+                    <MenuItem value="AF">Africa</MenuItem>
+                    <MenuItem value="AS">Asia</MenuItem>
+                    <MenuItem value="OC">Oceania</MenuItem>
+                </TextField>
+                <TextField
+                    fullWidth
+                    id="country"
+                    name="country"
+                    label="Country"
+                    select
+                    value={formik.values.country}
+                    onChange={formik.handleChange}
+                    error={formik.touched.country && Boolean(formik.errors.country)}
+                    helperText={formik.touched.country && formik.errors.country}
+                    disabled={
+                        formik.values.geographic_network_type === 'WORLD' ||
+                        formik.values.geographic_network_type === 'CONTINENTAL' ||
+                        countries.length === 0
+                    }
+                >
+                    {/* Options pour le pays */}
+                    {countries.map((country) => (
+                        <MenuItem key={country.code} value={country.code}>
+                            {country.name} - {country.code}
+                        </MenuItem>
+                    ))}
+                </TextField>
+                <Button color="primary" variant="contained" fullWidth type="submit">
+                    Submit
+                </Button>
+            </form>
+        </div>
+    );
+};
 export default function Page(props) {
     const content = {
         'register_submit': 'Register',
@@ -230,6 +491,7 @@ export default function Page(props) {
         } else {
             accounts[accounts.findIndex((a) => a.email === account.email)].password = account.password;
             accounts[accounts.findIndex((a) => a.email === account.email)].username = account.username;
+            accounts[accounts.findIndex((a) => a.email === account.email)].current_filter = account.current_filter;
             accountStore.set('accounts_list', accounts);
         }
     };
@@ -274,7 +536,7 @@ export default function Page(props) {
                 const response = await axios.post(url, null, { params });
                 console.log(response)
                 if (response.status === 200) {
-                    storeAddAccount({ username: values.username, email: values.email, password: values.password });
+                    storeAddAccount({ username: values.username, email: values.email, password: values.password, current_filter: "undefined" });
                     Reset_Key = response.data.account_data.reset_key
                     handleClickRegisterDialog();
                 }
@@ -331,7 +593,7 @@ export default function Page(props) {
                 const response = await axios.post(url, null, { params: params });
                 if (response.status === 200) {
                     const responseData = response.data;
-                    storeAddAccount({ username: responseData.username, email: values.email, password: values.password });
+                    storeAddAccount({ username: responseData.username, email: values.email, password: values.password, current_filter: "undefined" });
                     enqueueSnackbar("Authentification Reussi, Bienvenue " + responseData.username, { variant: 'success' });
                 }
             } catch (error) {
@@ -403,18 +665,18 @@ export default function Page(props) {
                 if (response.status === 200 && response.data.status === 'SUCCESS') {
                     Reset_Key = response.data.account_data.newResetKey
                     try {
-                    // Login for update Account Storage
-                    const url2 = `http://${cr_client_data.cr_server_address_api}/auth/login`;
-                    const params2 = {
-                        email: values.email,
-                        password: values.new_password
-                    };
+                        // Login for update Account Storage
+                        const url2 = `http://${cr_client_data.cr_server_address_api}/auth/login`;
+                        const params2 = {
+                            email: values.email,
+                            password: values.new_password
+                        };
                         const response2 = await axios.post(url2, null, { params: params2 });
                         if (response2.status === 200) {
                             const responseData2 = response2.data;
-                            storeAddAccount({ username: responseData2.username, email: values.email, password: values.new_password });
+                            storeAddAccount({ username: responseData2.username, email: values.email, password: values.new_password, current_filter: 'undefined' });
                         }
-                    } catch (error) {}
+                    } catch (error) { }
                     handleClickResetDialog()
                 } else {
                     Error_Code = 'UNEXPECTED_RESPONSE'
@@ -450,7 +712,7 @@ export default function Page(props) {
                         else {
                             Error_Code = 'ERROR_500'
                             Error_Description = "Le Serveur de destination a repondu avec une erreur 500.",
-                            Error_Solution = "Veuillez contactez l'hote du serveur auquel vous tentez de vous connecter ou le support de peerplay (si vous utilisez le serveur integré a l'application)"
+                                Error_Solution = "Veuillez contactez l'hote du serveur auquel vous tentez de vous connecter ou le support de peerplay (si vous utilisez le serveur integré a l'application)"
                         }
                     }
                 } else {
@@ -466,7 +728,43 @@ export default function Page(props) {
     useEffect(() => {
         const intervalId = setInterval(() => {
             const fetchedAccounts = storeGetAccounts();
-            setAccounts(fetchedAccounts);
+            fetchedAccounts.forEach(async (current_account: AccountData) => {
+                let account = { ...current_account };
+                const cr_client_data: CRClientData = cr_client_store.get('config');
+                const url = `http://${cr_client_data.cr_server_address_api}/auth/login`;
+                const params = {
+                    email: account.email,
+                    password: account.password
+                };
+                try {
+                    const response = await axios.post(url, null, { params: params });
+                    if (response.status === 200) {
+                        const token = response.data.jwt;
+                        const url1 = `http://${cr_client_data.cr_server_address_api}/account/filter/filter_settings`;
+                        const headers = {
+                            Authorization: `Bearer ${token}`,
+                        };
+                        try {
+                            const response1 = await axios.get(url1, { headers });
+                            if (response1.status === 200) {
+                                const responseData = response1.data;
+                                if (responseData.actual_filter === "NO_FILTER_FOUND") {
+                                    account.current_filter = "undefined"
+                                }
+                                else {
+                                    account.current_filter = `${responseData.actual_filter.network_type}-${responseData.actual_filter.connect_type}/${responseData.actual_filter.password}/${responseData.actual_filter.pool || 'undefined'}`;
+                                }
+                            }
+                        } catch (error) {
+                            account.current_filter = "undefined"
+                        }
+                    }
+                } catch (error) {
+                    account.current_filter = "undefined"
+                }
+                storeAddAccount(account)
+            });
+            setAccounts(storeGetAccounts());
         }, 1000);
         return () => {
             clearInterval(intervalId);
@@ -482,18 +780,26 @@ export default function Page(props) {
     const [openIPListDialog, setOpenIPListDialog] = React.useState(false);
     const handleCloseIPListDialog = () => setOpenIPListDialog(false);
     const handleClickIPListDialog = () => setOpenIPListDialog(true);
-    const [openConnectDialog, setOpenConnectDialog] = React.useState(false);
-    const handleCloseConnectDialog = () => setOpenConnectDialog(false);
-    const handleClickConnectDialog = () => setOpenConnectDialog(true);
     const [openRegisterDialog, setOpenRegisterDialog] = React.useState(false);
     const handleCloseRegisterDialog = () => { Reset_Key = "", setOpenRegisterDialog(false); }
     const handleClickRegisterDialog = () => setOpenRegisterDialog(true);
     const [openResetDialog, setOpenResetDialog] = React.useState(false);
     const handleCloseResetDialog = () => { Reset_Key = "", setOpenResetDialog(false); }
     const handleClickResetDialog = () => setOpenResetDialog(true);
-    const [openErrorDialog, setOpenErrorDialog] = React.useState(false);
-    const handleCloseErrorDialog = () => setOpenErrorDialog(false);
-    const handleClickErrorDialog = () => setOpenErrorDialog(true);
+
+    // Form Dialogs
+    const [FilterDialogOpen, setOpenChangeFilterDialog] = useState(false);
+    const OpenChangeFilterDialog = (email: string, password: string, username: string) => {
+        targetedAccount = { username: username, email: email, password: password };
+        setOpenChangeFilterDialog(true);
+    };
+    const CloseChangeFilterDialog = () => {
+        setOpenChangeFilterDialog(false);
+    };
+    const [activeTab, setActiveTab] = React.useState(0);
+    const handleTabChange = (event, newValue) => {
+        setActiveTab(newValue);
+    };
     // Use State
     const [value, setValue] = React.useState(0);
     const [showLoginPassword, setShowLoginPassword] = React.useState(false);
@@ -523,6 +829,24 @@ export default function Page(props) {
     // @ts-ignore
     return (
         <React.Fragment>
+            <Dialog PaperProps={{ style: { minWidth: '800px' } }} open={FilterDialogOpen} onClose={CloseChangeFilterDialog}>
+                <DialogTitle>Change Filter Settings</DialogTitle>
+                <DialogContentText><center><b>{"Warning, change the filter will cut for a few seconds the consoles connected to peerplay with this account"}</b></center></DialogContentText>
+                <DialogContent>
+                    <Tabs value={activeTab} onChange={handleTabChange} centered>
+                        <Tab label="Location based filter" />
+                        <Tab label="Password based filter" />
+                    </Tabs>
+
+                    {activeTab === 0 && (
+                        <GeographicKeyForm handleClose={CloseChangeFilterDialog} />
+                    )}
+
+                    {activeTab === 1 && (
+                        <PasswordKeyForm handleClose={CloseChangeFilterDialog} />
+                    )}
+                </DialogContent>
+            </Dialog>
             <Dialog PaperProps={{ style: { minWidth: '950px' } }} open={openIPListDialog} onClose={handleCloseIPListDialog}>
                 <DialogTitle>Parametrage IP</DialogTitle>
                 <DialogContent>
@@ -667,17 +991,6 @@ export default function Page(props) {
                     </Button>
                 </DialogActions>
             </Dialog>
-            <Dialog maxWidth="md" open={openConnectDialog} onClose={handleCloseConnectDialog}>
-                <DialogTitle>Authentifié</DialogTitle>
-                <DialogContent>
-                    <DialogContentText>{"Vous etes Authentifié avec Succés, enregistrement du profil coté client"}</DialogContentText>
-                </DialogContent>
-                <DialogActions>
-                    <Button color="primary" onClick={handleCloseConnectDialog}>
-                        Close
-                    </Button>
-                </DialogActions>
-            </Dialog>
             <Dialog maxWidth="md" open={openRegisterDialog} onClose={handleCloseRegisterDialog}>
                 <DialogTitle>Inscription Terminé</DialogTitle>
                 <DialogContent>
@@ -714,21 +1027,6 @@ export default function Page(props) {
                     </Button>
                 </DialogActions>
             </Dialog>
-            <Dialog maxWidth="md" open={openErrorDialog} onClose={handleCloseErrorDialog}>
-                <DialogTitle>{"Une Erreur est survenue lors de " + Procedure}</DialogTitle>
-                <DialogContent>
-                    <DialogContentText>{Error_Code}</DialogContentText>
-                    <DialogContentText>{Error_Description}</DialogContentText>
-                </DialogContent>
-                <DialogContent>
-                <DialogContentText>{Error_Solution}</DialogContentText>
-                </DialogContent>
-                <DialogActions>
-                    <Button color="primary" onClick={handleCloseErrorDialog}>
-                        Close
-                    </Button>
-                </DialogActions>
-            </Dialog>
             <Grid container>
                 <Grid item xs={11} md={6}>
                     <Box py={0} style={{ minHeight: '475px', height: '100%', }}>
@@ -739,22 +1037,28 @@ export default function Page(props) {
                                 <List>
                                     {accounts.map((account) => (
                                         <ListItem key={account.email}>
-                                            <Grid container alignItems="center">
-                                                <Grid item md={10}>
+                                            <Grid item md={9.5}>
+                                                <Stack spacing={0.1}>
                                                     <ListItemText primary={account.username} secondary={account.email} />
-                                                </Grid>
-                                                <Grid item md={7}>
-                                                    <ListItemSecondaryAction>
-                                                        <IconButton edge="end"
-                                                            onClick={() => handleGetIPFromAccount(account.email, account.password, account.username)}>
-                                                            <PermDeviceInformation />
-                                                        </IconButton>
-                                                        <IconButton edge="end"
-                                                            onClick={() => handleDeleteAccount(account.email)}>
-                                                            <Delete />
-                                                        </IconButton>
-                                                    </ListItemSecondaryAction>
-                                                </Grid>
+                                                    <Typography variant="caption">{account.current_filter.split("/")[1]}</Typography>
+                                                    <Typography variant="caption">{account.current_filter.split("/")[2]}</Typography>
+                                                </Stack>
+                                            </Grid>
+                                            <Grid item md={2.5}>
+                                                <ListItemSecondaryAction>
+                                                    <IconButton edge="end"
+                                                        onClick={() => handleGetIPFromAccount(account.email, account.password, account.username)}>
+                                                        <PermDeviceInformation />
+                                                    </IconButton>
+                                                    <IconButton edge="end"
+                                                        onClick={() => OpenChangeFilterDialog(account.email, account.password, account.username)}>
+                                                        <KeyIcon />
+                                                    </IconButton>
+                                                    <IconButton edge="end"
+                                                        onClick={() => handleDeleteAccount(account.email)}>
+                                                        <Delete />
+                                                    </IconButton>
+                                                </ListItemSecondaryAction>
                                             </Grid>
                                         </ListItem>
                                     ))}
@@ -1004,6 +1308,6 @@ export default function Page(props) {
                     </Box>
                 </Grid>
             </Grid>
-        </React.Fragment>
+        </React.Fragment >
     );
 }
