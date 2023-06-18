@@ -75,7 +75,7 @@ export async function peerplay_cr_server_status(request) {
     if (started === true) {
         if (request === true){
             try {
-                const response = await axios.get('http://localhost:5986/network/general/status');
+                const response = await axios.get('http://localhost:5985/network/general/status');
                 if (response.status === 200) {
                     running = true
                 }
