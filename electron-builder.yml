@@ -1,6 +1,7 @@
 appId: com.peerplay-network.peerplay
 productName: Peerplay
 copyright: Copyright © 2023 MH13
+asar: false
 directories:
   output: dist
   buildResources: resources
