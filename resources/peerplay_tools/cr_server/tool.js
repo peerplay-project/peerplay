@@ -17,7 +17,7 @@ export async function peerplay_cr_server_start(uuid, minimal_port_range, domain_
         let executableName = "peerplay_cr_server.js";
         if (isProd) {
             environment = "production"
-            filepath = path.join(process.resourcesPath, "app.asar");
+            filepath = path.join(process.resourcesPath, "app");
         } else {
             environment = "development"
             filepath = path.resolve(process.resourcesPath, "../../../../");

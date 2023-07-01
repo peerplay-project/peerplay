@@ -19,7 +19,7 @@ let tray: Tray = null;
 
 async function createMainWindow() {
     mainWindow = createWindow('main', {
-        width: 1000,
+        width: 1150,
         height: 700,
         resizable: false,
         webPreferences: {

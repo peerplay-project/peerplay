@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Container from '@mui/material/Container';
+import Carousel from 'react-material-ui-carousel';
 import Grid from '@mui/material/Grid';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
@@ -8,11 +9,26 @@ import TextField from '@mui/material/TextField';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import KeyIcon from '@mui/icons-material/Key';
-import { Field, Form, Formik, useFormik } from 'formik';
+import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import Store from 'electron-store';
 import axios from 'axios';
-import { Delete, PermDeviceInformation } from '@mui/icons-material';
+import {
+    AccountCircle,
+    Block,
+    Delete,
+    MoreHoriz,
+    NetworkCheck,
+    PermDeviceInformation,
+    SettingsEthernet,
+    SignalCellular1Bar,
+    SignalCellular2Bar,
+    SignalCellular3Bar,
+    SignalCellular4Bar,
+    SignalCellularConnectedNoInternet1Bar,
+    SignalCellularNodata,
+    Wifi
+} from '@mui/icons-material';
 import {
     Dialog,
     DialogTitle,
@@ -26,14 +42,13 @@ import {
     IconButton,
     ListItemText,
     ListItem,
-    ListItemSecondaryAction,
     RadioGroup,
     Radio,
     FormControlLabel,
     InputAdornment,
     MenuItem,
     Switch,
-    Menu
+    Divider
 } from '@mui/material';
 import { useSnackbar } from 'notistack';
 let Reset_Key = ""
@@ -63,7 +78,6 @@ let console_gateway: ConsoleList = {
     SWITCH: "",
 }
 
-const XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest;
 interface ConsoleList {
     PS3: string,
     PS4: string,
@@ -117,6 +131,7 @@ interface AccountData {
     username: string,
     email: string,
     password: string,
+    source: string,
     current_filter: string,
 }
 
@@ -126,6 +141,35 @@ const cr_client_store = new Store<CRClientData>({
 const accountStore = new Store<AccountData>({
     name: 'accounts_list',
 });
+
+function NetworkQualityRender(value) {
+    switch (value) {
+        case "NT1":
+            return <SignalCellular4Bar fontSize={"small"} />;
+        case "NT2":
+            return <SignalCellular3Bar fontSize={"small"} />;
+        case "NT3":
+            return <SignalCellular2Bar fontSize={"small"} />;
+        case "NT4":
+            return <SignalCellular1Bar fontSize={"small"} />;
+        case "NT5":
+            return <SignalCellularConnectedNoInternet1Bar fontSize={"small"} />;
+        default:
+            return <SignalCellularNodata fontSize={"small"} />;
+    }
+}
+
+function ConnectMethodRender(value) {
+    switch (value) {
+        case 'ETH':
+            return <SettingsEthernet fontSize={"small"} />;
+        case 'WLAN':
+            return <Wifi fontSize={"small"} />;
+        default:
+            return <MoreHoriz fontSize={"small"} />;
+    }
+}
+
 const PasswordKeyForm = ({ handleClose }) => {
     const { enqueueSnackbar } = useSnackbar();
     const validationSchema = Yup.object({
@@ -172,11 +216,12 @@ const PasswordKeyForm = ({ handleClose }) => {
                         const response = await axios.request(config);
                         if (response.status === 200) {
                             console.log("Success")
-                            enqueueSnackbar('Filter Updated Successfuly', { variant: 'success' });
+                            enqueueSnackbar(`Filter Successfuly Updated for : ${targetedAccount.username}, new filter is : PWD_${response.data.new_informations.new_password}`, { variant: 'success' });
                         }
                     } catch (error) {
                         console.log("error")
                         if (error.response) {
+                            console.log(error.response.data)
                             enqueueSnackbar("An error occured on Filter Update : " + error.response.data.code, { variant: 'error' });
                         }
                     }
@@ -275,7 +320,7 @@ const GeographicKeyForm = ({ handleClose }) => {
                         const response = await axios.request(config);
                         if (response.status === 200) {
                             console.log("Success")
-                            enqueueSnackbar('Filter Updated Successfuly', { variant: 'success' });
+                            enqueueSnackbar(`Filter Successfuly Updated for : ${targetedAccount.username}, new filter is : GEO_${response.data.new_informations.new_password}`, { variant: 'success' });
                         }
                     } catch (error) {
                         console.log("error")
@@ -409,11 +454,190 @@ export default function Page(props) {
                     Authorization: `Bearer ${token}`,
                 };
                 try {
-                    const response = await axios.get(url, { headers });
+                    const response = await axios.get(url, { headers: headers });
                     if (response.status === 200) {
                         console_ip = response.data.console_ip
                         console_gateway = response.data.console_gateway
                         handleClickIPListDialog()
+                    }
+                } catch (error) {
+                    if (error.response) {
+                        if (error.response.status === 401) {
+                            switch (error.response.data.CODE) {
+                                case "INVALID_JWT":
+                                    Error_Code = 'INVALID_JWT'
+                                    Error_Description = "Le JWT Fourni est Invalide"
+                                    Error_Solution = "Veuillez fournir un JWT valide pour ce serveur"
+                                    break;
+                                case "INVALID_JWT_SIGNATURE":
+                                    Error_Code = 'INVALID_JWT_SIGNATURE'
+                                    Error_Description = "La Signature de ce JWT est Invalide, A Expiré ou Appartient a un autre serveur"
+                                    Error_Solution = "Veuillez vous connecter avec votre compte pour obtenir un JWT valide pour ce serveur"
+                                    break;
+                            }
+                        }
+                        else {
+                            Error_Code = 'ERROR_500'
+                            Error_Description = "Le Serveur de destination a repondu avec une erreur 500"
+                            Error_Solution = "Veuillez contactez l'hote du serveur auquel vous etes relié ou le support de peerplay (si vous utilisez le serveur integré a l'application)"
+                        }
+                    } else {
+                        Error_Code = 'CONNECTION_ERROR'
+                        Error_Description = "La connexion au Serveur Peerplay CR a Échoué."
+                        Error_Solution = "Veuillez vérifier votre connexion internet, si elle n'est pas en cause contactez l'hôte du serveur auquel vous etes relié ou le support de Peerplay (si vous utilisez le serveur integré a l'application et que ce dernier est bien ouvert)"
+                    }
+                    enqueueSnackbar(Error_Description, { variant: 'error' });
+                }
+            }
+        } catch (error) {
+            if (error.response) {
+                if (error.response.status === 401) {
+                    switch (error.response.data.code) {
+                        case "ACCOUNT_NOT_FOUND":
+                            Error_Code = 'ACCOUNT_NOT_FOUND'
+                            Error_Description = "Le compte n'a pas été trouvé et n'est pas accessible depuis le serveur ciblé"
+                            Error_Solution = "Veuillez Essayer de changer de serveur ou réessayer plus tard"
+                            break;
+                        case "INCORRECT_PASSWORD":
+                            Error_Code = 'INCORRECT_PASSWORD'
+                            Error_Description = "Le Mot de Passe du compte est incorrect (Il est possible que cette sauvegarde ne soit pas a jour)"
+                            Error_Solution = "Veuillez vous réauthentifier ou réinitialiser votre mot de passe si vous n'avez"
+                            break;
+                        default:
+                            Error_Code = 'UNKNOWN_ERROR'
+                            Error_Description = "L'Erreur que vous rencontrez est inconnue."
+                            Error_Solution = "Veuillez contacter le support de Peerplay"
+                            break;
+                    }
+                } else if (error.response.status === 400) {
+                    Error_Code = 'BAD_REQUEST'
+                    Error_Description = "Des éléments requis sont manquants"
+                    Error_Solution = "Veuillez vérifier que tous les champs necessaires sont remplis"
+                } else {
+                    Error_Code = 'ERROR_500'
+                    Error_Description = "Le Serveur de destination a répondu avec une erreur 500."
+                    Error_Solution = "Veuillez contactez l'hôte du serveur ou le support de Peerplay (si vous êtes l'hôte)"
+                }
+            } else {
+                Error_Code = 'CONNECTION_ERROR'
+                Error_Description = "La connexion au Serveur Peerplay CR a Échoué."
+                Error_Solution = "Veuillez vérifier votre connexion internet, si elle n'est pas en cause contactez l'hôte du serveur auquel vous êtes relié ou le support de Peerplay (si vous utilisez le serveur integré a l'application et que celui çi est bien ouvert)"
+            }
+            enqueueSnackbar(Error_Description, { variant: 'error' });
+        }
+    }
+
+    async function networkTest(force_test: boolean): Promise<{ result: { network_type: string, connect_type: string } | undefined, error: string }> {
+        const cr_client_data: CRClientData = cr_client_store.get('config');
+        const config = {
+            timeout: 30000,
+            method: 'post',
+            url: `http://${cr_client_data.cr_server_address_api}/account/filter/filter_settings/refresh_network_type`,
+            params: {
+                force_test: force_test,
+                allow_empty: 'true'
+            }
+        };
+        try {
+            const response = await axios.request(config);
+            console.log("DATA")
+            console.log(response.data.new_informations)
+            if (response.status === 200) {
+                if (response.data.new_informations.new_network_type !== undefined && response.data.new_informations.new_connect_type !== undefined) {
+                    console.log("DETAILS")
+                    console.log(response.data.new_informations.new_network_type)
+                    console.log(response.data.new_informations.new_connect_type)
+                    return {
+                        result: {
+                            network_type: 'NT' + response.data.new_informations.new_network_type,
+                            connect_type: response.data.new_informations.new_connect_type
+                        },
+                        error: undefined
+                    }
+                }
+                else {
+                    return {
+                        result: undefined,
+                        error: "No Data Found"
+                    }
+                }
+            }
+            else {
+                return {
+                    result: undefined,
+                    error: "Response Status Not 200"
+                }
+            }
+        } catch (error) {
+            if (error.response === undefined) {
+                console.log(`Cannot Connect To Server`)
+                return {
+                    result: undefined,
+                    error: `Cannot Connect To Server`
+                }
+            }
+            else
+            {
+                console.log(error.response.data.errors[0])
+                return {
+                    result: undefined,
+                    error: `${error.response.data.errors[0]}`
+                }
+            }
+            
+        }
+    }
+
+    async function handleSwitchNetworkCheckAccount(email: string, password: string, username: string) {
+        const cr_client_data: CRClientData = cr_client_store.get('config');
+        const url = `http://${cr_client_data.cr_server_address_api}/auth/login`;
+        const params = {
+            email: email,
+            password: password
+        }
+        enqueueSnackbar(`Trying to Enable / Disable Network Check for : ${username}`, { variant: 'info' });
+        try {
+            console.log("Stage 1")
+            const response = await axios.post(url, null, { params: params });
+            if (response.status === 200) {
+                const token = response.data.jwt;
+                try {
+                    const config = {
+                        method: 'post',
+                        url: `http://${cr_client_data.cr_server_address_api}/account/filter/filter_settings/network_filtration`,
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    };
+                    try {
+                        console.log("Stage 2")
+                        const response2 = await axios.request(config);
+                        if (response2.status === 200) {
+                            const config2 = {
+                                method: 'post',
+                                url: `http://${cr_client_data.cr_server_address_api}/account/filter/filter_settings/refresh_network_type`,
+                            };
+                            try {
+                                console.log("Stage 3")
+                                const response3 = await axios.request(config2);
+                                if (response3.status === 200) {
+                                    if (response3.data.new_informations.new_network_type !== undefined) {
+                                        setNetworkStatus({ network_quality_level: 'NT' + response3.data.new_informations.new_network_type, connect_method: response3.data.new_informations.new_connect_type })
+                                    }
+                                    else {
+                                        setNetworkStatus({ network_quality_level: "N/A", connect_method: "N/A" })
+                                    }
+                                    enqueueSnackbar(`Network Filtration for ${username} is set to : ${response2.data.strict}`, { variant: 'success' });
+                                }
+                            }
+                            catch (error) {
+                                enqueueSnackbar("Cannot Refresh Network Quality :" + error.response.data.code, { variant: 'error' });
+                            }
+
+                        }
+                    }
+                    catch (error) {
+                        enqueueSnackbar("Cannot Enable/Disable Network Quality Filtering :" + error.response.data.code, { variant: 'error' });
                     }
                 } catch (error) {
                     if (error.response) {
@@ -492,6 +716,7 @@ export default function Page(props) {
             accounts[accounts.findIndex((a) => a.email === account.email)].password = account.password;
             accounts[accounts.findIndex((a) => a.email === account.email)].username = account.username;
             accounts[accounts.findIndex((a) => a.email === account.email)].current_filter = account.current_filter;
+            accounts[accounts.findIndex((a) => a.email === account.email)].source = account.source
             accountStore.set('accounts_list', accounts);
         }
     };
@@ -536,7 +761,7 @@ export default function Page(props) {
                 const response = await axios.post(url, null, { params });
                 console.log(response)
                 if (response.status === 200) {
-                    storeAddAccount({ username: values.username, email: values.email, password: values.password, current_filter: "undefined" });
+                    storeAddAccount({ username: values.username, email: values.email, password: values.password, current_filter: "undefined", source: "" });
                     Reset_Key = response.data.account_data.reset_key
                     handleClickRegisterDialog();
                 }
@@ -593,7 +818,7 @@ export default function Page(props) {
                 const response = await axios.post(url, null, { params: params });
                 if (response.status === 200) {
                     const responseData = response.data;
-                    storeAddAccount({ username: responseData.username, email: values.email, password: values.password, current_filter: "undefined" });
+                    storeAddAccount({ username: responseData.username, email: values.email, password: values.password, current_filter: "undefined", source: "" });
                     enqueueSnackbar("Authentification Reussi, Bienvenue " + responseData.username, { variant: 'success' });
                 }
             } catch (error) {
@@ -674,7 +899,7 @@ export default function Page(props) {
                         const response2 = await axios.post(url2, null, { params: params2 });
                         if (response2.status === 200) {
                             const responseData2 = response2.data;
-                            storeAddAccount({ username: responseData2.username, email: values.email, password: values.new_password, current_filter: 'undefined' });
+                            storeAddAccount({ username: responseData2.username, email: values.email, password: values.new_password, current_filter: 'undefined', source: "" });
                         }
                     } catch (error) { }
                     handleClickResetDialog()
@@ -724,13 +949,42 @@ export default function Page(props) {
             }
         }
     });
+    let first_call = true
+    const [server_opened, setServerOpened] = useState(false);
     const [accounts, setAccounts] = useState([]);
+    const [networkStatus, setNetworkStatus] = useState({
+        network_quality_level: "N/A", // "ANY", "NT1", "NT2", "NT3", NT4, NT5
+        connect_method: "N/A", // "ETH" or "WLAN"
+    });
     useEffect(() => {
-        const intervalId = setInterval(() => {
+        const intervalId = setInterval(async () => {
+            const cr_client_data: CRClientData = cr_client_store.get('config');
+            const status_url = `http://${cr_client_data.cr_server_address_api}/network/general/status`;
+            try{
+                const status_response = await axios.get(status_url);
+            if (first_call && status_response.status === 200) {
+                setServerOpened(true)
+                enqueueSnackbar("Starting Syncronisation with Server, Please Wait", { variant: 'success' });
+                first_call = false
+                const network_test = await networkTest(false)
+                setNetworkStatus({ network_quality_level: network_test.result.network_type, connect_method: network_test.result.connect_type })
+                enqueueSnackbar("Syncronisation Finished", { variant: 'success' });
+            }
+            else
+            {
+                if (status_response.status === 200){
+                    setServerOpened(true)
+                    const network_test = await networkTest(false)
+                    setNetworkStatus({ network_quality_level: network_test.result.network_type, connect_method: network_test.result.connect_type })
+                }
+                else {
+                    setServerOpened(false)
+                    setNetworkStatus({ network_quality_level: "N/A", connect_method: "N/A" })
+                }
+            }
             const fetchedAccounts = storeGetAccounts();
             fetchedAccounts.forEach(async (current_account: AccountData) => {
                 let account = { ...current_account };
-                const cr_client_data: CRClientData = cr_client_store.get('config');
                 const url = `http://${cr_client_data.cr_server_address_api}/auth/login`;
                 const params = {
                     email: account.email,
@@ -749,13 +1003,16 @@ export default function Page(props) {
                             if (response1.status === 200) {
                                 const responseData = response1.data;
                                 if (responseData.actual_filter === "NO_FILTER_FOUND") {
+                                    account.source = ""
                                     account.current_filter = "undefined"
                                 }
                                 else {
-                                    account.current_filter = `${responseData.actual_filter.password}/${responseData.actual_filter.pool || 'undefined'}`;
+                                    account.source = responseData.source;
+                                    account.current_filter = `${responseData.actual_filter.network_type}/${responseData.actual_filter.connect_type}/${responseData.actual_filter.password}/${responseData.actual_filter.pool || 'undefined'}`;
                                 }
                             }
                         } catch (error) {
+                            account.source = ""
                             account.current_filter = "undefined"
                         }
                     }
@@ -765,6 +1022,8 @@ export default function Page(props) {
                 storeAddAccount(account)
             });
             setAccounts(storeGetAccounts());
+        }
+        catch {}
         }, 1000);
         return () => {
             clearInterval(intervalId);
@@ -1027,42 +1286,124 @@ export default function Page(props) {
                     </Button>
                 </DialogActions>
             </Dialog>
-            <Grid container>
+            <Grid container direction="row">
                 <Grid item xs={11} md={6}>
                     <Box py={0} style={{ minHeight: '475px', height: '100%', }}>
                         <Box>
                             <Container>
-                                <Typography style={{ textAlign: "center" }} variant="subtitle1" gutterBottom>Liste des
+                                <Typography style={{ textAlign: "center" }} variant="h6" gutterBottom>Liste des
                                     Comptes</Typography>
-                                <List>
+                                <Grid container spacing={1}>
+                                    <Grid item xs={6.5} md={6.5}>
+                                        { server_opened ?                                         <Button variant="contained" endIcon={<NetworkCheck />} onClick={async () => {
+                                            enqueueSnackbar("Trying to Regenerate Network Quality", { variant: 'info' })
+                                            const network_test = await networkTest(true)
+                                            if (network_test.result !== undefined) {
+                                                setNetworkStatus({ network_quality_level: network_test.result.network_type, connect_method: network_test.result.connect_type })
+                                                enqueueSnackbar(`Network quality successfully regenerated`, { variant: 'success' })
+                                            }
+                                            else {
+                                                enqueueSnackbar(`Unable to regenerate Network Quality : ${network_test.error.split(':')[1] || network_test.error}`, { variant: 'error' })
+                                            }
+                                        }}>
+                                            Test Network
+                                        </Button> : <Button variant="contained" endIcon={<NetworkCheck />} disabled>
+                                            Test Network
+                                        </Button>}
+                                    </Grid>
+                                    <Grid item xs={2.5} md={2.5}>
+                                        <Typography style={{ textAlign: "center" }} gutterBottom>{NetworkQualityRender(networkStatus.network_quality_level)} : {networkStatus.network_quality_level}</Typography>
+                                    </Grid>
+                                    <Grid item xs={2.5} md={2.5}>
+                                        <Typography style={{ textAlign: "center" }} gutterBottom>{ConnectMethodRender(networkStatus.connect_method)} : {networkStatus.connect_method}</Typography>
+                                    </Grid>
+                                </Grid>
+                                {accounts.length !== 0 ? <Carousel
+                                    autoPlay={false}
+                                    navButtonsAlwaysVisible={true}
+                                    fullHeightHover={false}
+                                    sx={{ paddingTop: '20px', height: '230px', width: '100%', }}
+                                >
                                     {accounts.map((account) => (
-                                        <ListItem key={account.email}>
-                                            <Grid item md={9.5}>
-                                                <Stack spacing={0.1}>
-                                                    <ListItemText primary={account.username} secondary={account.email} />
-                                                    <Typography variant="caption">{account.current_filter.split("/")[0]}</Typography>
-                                                    <Typography variant="caption">{account.current_filter.split("/")[1]}</Typography>
-                                                </Stack>
+                                        <Grid container direction={'column'} alignItems={"center"} justifyContent={"center"} style={{ backgroundColor: '#C0C0C0', borderRadius: '10px' }}>
+                                            <Grid container style={{ minHeight: "10px" }}>
+                                                <Grid item md={2} style={{ textAlign: "left" }}>
+                                                    <IconButton edge="end" disabled>
+                                                        <AccountCircle color={account.current_filter !== "undefined" ? "primary" : "inherit"} />
+                                                    </IconButton></Grid>
+                                                <Grid item md={6}><ListItemText style={{ textAlign: "left" }} primary={account.username} /></Grid>
+                                                <Grid item md={4}>
+                                                    {
+                                                        <Stack direction={"row"}>
+                                                            {account.current_filter !== "undefined" && account.source === "LOCAL" ? <>
+                                                                {
+                                                                    account.current_filter.split("/")[0].toLowerCase() === "ANY".toLowerCase() ? (
+                                                                        <IconButton edge="end" onClick={() => handleSwitchNetworkCheckAccount(account.email, account.password, account.username)}>
+                                                                            <NetworkCheck color="warning" />
+                                                                        </IconButton>
+                                                                    ) : (
+                                                                        <IconButton edge="end" onClick={() => handleSwitchNetworkCheckAccount(account.email, account.password, account.username)}>
+                                                                            <NetworkCheck color="success" />
+                                                                        </IconButton>
+                                                                    )
+                                                                }
+                                                            </> : <>
+                                                                <IconButton edge="end" disabled>
+                                                                    <Block />
+                                                                </IconButton>
+                                                            </>}
+                                                            {
+                                                                account.current_filter !== "undefined" ?
+                                                                    <>
+                                                                        <IconButton edge="end"
+                                                                            onClick={() => OpenChangeFilterDialog(account.email, account.password, account.username)}>
+                                                                            <KeyIcon />
+                                                                        </IconButton>
+                                                                    </> : <>
+                                                                        <IconButton edge="end" disabled>
+                                                                            <Block />
+                                                                        </IconButton>
+                                                                    </>
+                                                            }
+                                                            <IconButton edge="end"
+                                                                onClick={() => handleGetIPFromAccount(account.email, account.password, account.username)}>
+                                                                <PermDeviceInformation />
+                                                            </IconButton>
+                                                            <IconButton edge="end"
+                                                                onClick={() => handleDeleteAccount(account.email)}>
+                                                                <Delete />
+                                                            </IconButton>
+                                                        </Stack>
+                                                    }
+                                                </Grid>
                                             </Grid>
-                                            <Grid item md={2.5}>
-                                                <ListItemSecondaryAction>
-                                                    <IconButton edge="end"
-                                                        onClick={() => handleGetIPFromAccount(account.email, account.password, account.username)}>
-                                                        <PermDeviceInformation />
-                                                    </IconButton>
-                                                    <IconButton edge="end"
-                                                        onClick={() => OpenChangeFilterDialog(account.email, account.password, account.username)}>
-                                                        <KeyIcon />
-                                                    </IconButton>
-                                                    <IconButton edge="end"
-                                                        onClick={() => handleDeleteAccount(account.email)}>
-                                                        <Delete />
-                                                    </IconButton>
-                                                </ListItemSecondaryAction>
+                                            <Grid container style={{ minHeight: "40px" }}>
+                                                <Grid item md={2}></Grid>
+                                                <Grid item md={8}><ListItemText style={{ textAlign: "left" }} secondary={account.email} /></Grid>
+                                                <Grid item md={2}></Grid>
                                             </Grid>
-                                        </ListItem>
+                                            <Grid container style={{ minHeight: "30px" }}>
+                                                <Grid item md={2}></Grid>
+                                                <Grid item md={9}><ListItemText style={{ textAlign: "left" }} secondary={account.current_filter.split("/")[2]} /></Grid>
+                                                <Grid item md={1}></Grid>
+                                            </Grid>
+                                            <Grid container style={{ minHeight: "35px" }}>
+                                                <Grid item md={2}></Grid>
+                                                <Grid item md={9}><ListItemText style={{ textAlign: "left" }} secondary={account.current_filter.split("/")[3]} /></Grid>
+                                                <Grid item md={1}></Grid>
+                                            </Grid>
+                                        </Grid>
                                     ))}
-                                </List>
+                                </Carousel> : <Carousel
+                                    autoPlay={false}
+                                    indicators={false}
+                                    navButtonsAlwaysInvisible={true}
+                                    fullHeightHover={false}
+                                    sx={{ paddingTop: '20px', height: '250px', width: '100%', }}
+                                >
+                                    <Grid container style={{ backgroundColor: '#C0C0C0', borderRadius: '10px' }}>
+                                        <Grid item><Typography style={{ textAlign: "center", height: '110px' }} variant="h6" gutterBottom>{server_opened ? "No Account Found, please add an account or wait for syncronisation" : "Cannot Connect to Server, Please Try later or edit your client configuration"}</Typography></Grid>
+                                    </Grid></Carousel>} 
                             </Container>
                         </Box>
                     </Box>

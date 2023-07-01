@@ -23,7 +23,7 @@ export function lan_play_start(server_ip) {
                 break;
         }
         if (isProd){
-            filepath = path.join(process.resourcesPath, "app.asar");
+            filepath = path.join(process.resourcesPath, "app");
         }
         else
         {
