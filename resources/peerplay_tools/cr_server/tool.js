@@ -17,7 +17,7 @@ export async function peerplay_cr_server_start(uuid, minimal_port_range, domain_
         let executableName = "peerplay_cr_server.js";
         if (isProd) {
             environment = "production"
-            filepath = path.join(process.resourcesPath, "app.asar");
+            filepath = path.join(process.resourcesPath, "app");
         } else {
             environment = "development"
             filepath = path.resolve(process.resourcesPath, "../../../../");
@@ -75,7 +75,7 @@ export async function peerplay_cr_server_status(request) {
     if (started === true) {
         if (request === true){
             try {
-                const response = await axios.get('http://localhost:5986/network/general/status');
+                const response = await axios.get('http://localhost:5985/network/general/status');
                 if (response.status === 200) {
                     running = true
                 }
