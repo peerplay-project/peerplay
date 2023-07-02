@@ -166,7 +166,6 @@ export default function Layout({ children }) {
 
     return (
         <Box sx={{ display: 'flex', overflow: "clip" }}>
-            <title>Peerplay</title>
             <CssBaseline />
             <Dialog open={openAboutDialog} onClose={handleCloseAboutDialog}>
                 <DialogTitle>About Peerplay</DialogTitle>

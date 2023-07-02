@@ -23,11 +23,11 @@ async function createMainWindow() {
         height: 700,
         resizable: false,
         webPreferences: {
-            //devTools: !isProd
+        devTools: !isProd
         }
     });
     if (isProd) {
-        //mainWindow.removeMenu();
+        mainWindow.removeMenu();
     }
     await mainWindow.loadURL(isProd ? 'app://./home.html' : `http://localhost:${process.argv[2]}/home`);
     mainWindow.on('close', (event) => {
