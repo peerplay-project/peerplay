@@ -13,6 +13,8 @@ import { peerplay_cr_server_status, peerplay_cr_server_start, peerplay_cr_server
 import { v5 as uuidv5, v4 as uuidv4 } from 'uuid';
 import Divider from "@mui/material/Divider";
 import { useSnackbar } from 'notistack';
+import { peerplay_cr_client_start, peerplay_cr_client_status, peerplay_cr_client_stop } from '../../resources/peerplay_tools/cr_client/tool';
+import { lan_play_status } from '../../resources/peerplay_tools/lan_play/tool';
 interface Data {
     uuid: string,
     minimal_port_range: number,
@@ -87,7 +89,24 @@ export default function Page(props) {
                         await new Promise(resolve => setTimeout(resolve, 1000)); // Attendez 1 seconde avant de continuer la boucle
                     }
                     if (startStatus.running === true && startStatus.started === true) {
-                        enqueueSnackbar('Peerplay CR Server a été demarré avec succés', { variant: 'success' })
+                        enqueueSnackbar('Peerplay CR Server a été demarré avec succés Lancement automatique de Peerplay CR Client', { variant: 'success' })
+                        if (peerplay_cr_client_status() === false && lan_play_status() === false) {
+                            const store = new Store<Data>({
+                                name: 'cr_client-config',
+                            });
+                            const data = {
+                                cr_server_address: "localhost:5981",
+                                cr_server_address_api: "localhost:5985",
+                                use_localhost_cr_server: true,
+                            };
+                            store.set('config', data);
+                            const script = peerplay_cr_client_start("localhost:5981");
+                            if (script === 'SUCCESS') {
+                                enqueueSnackbar('Peerplay CR Client lancé avec succés', { variant: 'success' })
+                            }
+                        } else {
+                            enqueueSnackbar('Peerplay CR Client ou Lan Play est déja lancé', { variant: 'warning' })
+                        }
                     }
                 } else {
                     enqueueSnackbar('Impossible de Démarrer Peerplay CR Server', { variant: 'error' })
@@ -204,6 +223,8 @@ export default function Page(props) {
                                                 <Button fullWidth variant="contained" color="error" onClick={async () => {
                                                     if ((await peerplay_cr_server_status(false)).started === true) {
                                                         if ((await (await peerplay_cr_server_status(false)).running === true)) {
+                                                            peerplay_cr_client_stop();
+                                                            enqueueSnackbar('Peerplay CR Client a été arrété avec succés', { variant: 'success' })
                                                             peerplay_cr_server_stop();
                                                             enqueueSnackbar('Peerplay CR Server a été arrété avec succés', { variant: 'success' })
                                                         }
