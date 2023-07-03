@@ -1,1 +1,1 @@
-export const peerplay_ui_version = "1.0.0"
+export const peerplay_ui_version = "1.0.0 H1"
