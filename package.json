@@ -2,14 +2,12 @@
   "private": true,
   "name": "Peerplay",
   "description": "Virtual LAN Games over P2P with Online Features",
-  "version": "1.0.0",
+  "version": "1.0.0-H2",
   "author": "MH13",
   "main": "app/background.js",
   "scripts": {
-    "dev": " cd ../peerplay_CR-server && npm run compile && xcopy dist\\ ..\\peerplay\\resources\\peerplay_tools\\cr_server\\software\\ /E /v /y && cd ../peerplay && nextron",
+    "dev": "nextron",
     "build": "nextron build",
-    "compile": "cd ../peerplay_CR-server && npm run compile && xcopy dist\\ ..\\peerplay\\resources\\peerplay_tools\\cr_server\\software\\ /E /v /y  && cd ../peerplay && npm run build",
-    "compile_and_install": "npm run compile && .\\\"dist\\Peerplay Setup 1.0.0.exe\"",
     "postinstall": "electron-builder install-app-deps"
   },
   "dependencies": {

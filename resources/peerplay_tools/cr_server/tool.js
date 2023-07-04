@@ -1,6 +1,6 @@
 import path from "path";
 import { fork } from 'child_process'
-export const peerplay_cr_server_version = "1.0.0"
+export const peerplay_cr_server_version = "1.0.0-H2"
 import axios from 'axios'
 const db_password = "t*vaf4j&69QgZ7!Mab2smA&ZNr^gkM4LehnxHn5mqa49%qz6DQ_8#+d@DBmgQ&c6U=YtRn2hDGxSCZ#&%mNs-kMQV-TpG+WLP4DT7A9TEYSmwmjv7kPZUJW?H!x848j!"
 const db_list = 'peerplay-rootdb-alpha.freeboxos.fr:32771'
