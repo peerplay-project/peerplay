@@ -2,7 +2,7 @@
   "private": true,
   "name": "Peerplay",
   "description": "Virtual LAN Games over P2P with Online Features",
-  "version": "1.0.0-H2",
+  "version": "1.0.0-H3",
   "author": "MH13",
   "main": "app/background.js",
   "scripts": {
