@@ -59,6 +59,7 @@ let Error_Solution = ""
 let req_email = ""
 let req_username = ""
 let targetedAccount = { username: "", email: "", password: "" };
+let network_key_change_method = "V1"
 let console_ip: ConsoleList = {
     PS3: "",
     PS4: "",
@@ -191,36 +192,56 @@ const PasswordKeyForm = ({ handleClose }) => {
                 values.network_key = "";
             }
             handleClose()
-            const cr_client_data: CRClientData = cr_client_store.get('config');
-            const url = `http://${cr_client_data.cr_server_address_api}/auth/login`;
-            const params = {
-                email: targetedAccount.email,
-                password: targetedAccount.password
-            };
-            try {
-                const response = await axios.post(url, null, { params: params });
-                if (response.status === 200) {
-                    const token = response.data.jwt;
+            switch (network_key_change_method) {
+                case "V1":
                     let config = {
                         method: 'post',
-                        url: `http://${cr_client_data.cr_server_address_api}/account/filter/filter_settings/password_key?random_password=${values.random_password}&network_key=${values.network_key}`,
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
+                        url: `http://localhost:5986/filter/filter_settings/password_key?random_password=${values.random_password}&network_key=${values.network_key}`,
                     };
                     try {
                         const response = await axios.request(config);
                         if (response.status === 200) {
-                            enqueueSnackbar(`Filter Successfuly Updated for : ${targetedAccount.username}, new filter is : PWD_${response.data.new_informations.new_password}`, { variant: 'success' });
+                            enqueueSnackbar(`Filter Successfuly Updated, new filter is : ${response.data.new_informations.password}`, { variant: 'success' });
                         }
                     } catch (error) {
                         if (error.response) {
                             enqueueSnackbar("An error occured on Filter Update : " + error.response.data.code, { variant: 'error' });
                         }
                     }
-                }
-            } catch (error) {
-                enqueueSnackbar("An error occured on Authentification : " + error.response.data.code, { variant: 'error' });
+                    break;
+                case "V2":
+                    const cr_client_data: CRClientData = cr_client_store.get('config');
+                    const url = `http://${cr_client_data.cr_server_address_api}/auth/login`;
+                    const params = {
+                        email: targetedAccount.email,
+                        password: targetedAccount.password
+                    };
+                    try {
+                        const response = await axios.post(url, null, { params: params });
+                        if (response.status === 200) {
+                            const token = response.data.jwt;
+                            let config = {
+                                method: 'post',
+                                url: `http://${cr_client_data.cr_server_address_api}/account/filter/filter_settings/password_key?random_password=${values.random_password}&network_key=${values.network_key}`,
+                                headers: {
+                                    'Authorization': `Bearer ${token}`
+                                }
+                            };
+                            try {
+                                const response = await axios.request(config);
+                                if (response.status === 200) {
+                                    enqueueSnackbar(`Filter Successfuly Updated for : ${targetedAccount.username}, new filter is : ${response.data.new_informations.password}`, { variant: 'success' });
+                                }
+                            } catch (error) {
+                                if (error.response) {
+                                    enqueueSnackbar("An error occured on Filter Update : " + error.response.data.code, { variant: 'error' });
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        enqueueSnackbar("An error occured on Authentification : " + error.response.data.code, { variant: 'error' });
+                    }
+                    break;
             }
         },
     });
@@ -287,37 +308,60 @@ const GeographicKeyForm = ({ handleClose }) => {
         validationSchema: validationSchema,
         onSubmit: async (values) => {
             handleClose()
-            const cr_client_data: CRClientData = cr_client_store.get('config');
-            const url = `http://${cr_client_data.cr_server_address_api}/auth/login`;
-            const params = {
-                email: targetedAccount.email,
-                password: targetedAccount.password
-            };
-            try {
-                const response = await axios.post(url, null, { params: params });
-                if (response.status === 200) {
-                    const token = response.data.jwt;
+            console.log(network_key_change_method)
+            switch (network_key_change_method) {
+                case "V1":
                     let config = {
                         method: 'post',
-                        url: `http://${cr_client_data.cr_server_address_api}/account/filter/filter_settings/geographic_key?geographic_network_type=${values.geographic_network_type}&continent=${values.continent}&country=${values.country}`,
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
+                        url: `http://localhost:5986/filter/filter_settings/geographic_key?geographic_network_type=${values.geographic_network_type}&continent=${values.continent}&country=${values.country}`,
                     };
                     try {
                         const response = await axios.request(config);
                         if (response.status === 200) {
-                            enqueueSnackbar(`Filter Successfuly Updated for : ${targetedAccount.username}, new filter is : GEO_${response.data.new_informations.new_password}`, { variant: 'success' });
+                            enqueueSnackbar(`Filter Successfuly Updated, new filter is : ${response.data.new_informations.password}`, { variant: 'success' });
                         }
                     } catch (error) {
-                        if (error) {
-                            enqueueSnackbar("An error occured on Filter Update : " + error.response.data.code, { variant: 'error' });
+                        if (error.response) {
+                            enqueueSnackbar("An error occured on Filter Update : " + error.response.data.output, { variant: 'error' });
                         }
                     }
-                }
-            } catch (error) {
-                enqueueSnackbar("An error occured on Authentifcation : " + error.response.data.code, { variant: 'error' });
-            }
+                    break;
+                case "V2":
+                    const cr_client_data: CRClientData = cr_client_store.get('config');
+                    const url = `http://${cr_client_data.cr_server_address_api}/auth/login`;
+                    const params = {
+                        email: targetedAccount.email,
+                        password: targetedAccount.password
+                    };
+                    try {
+                        const response = await axios.post(url, null, { params: params });
+                        if (response.status === 200) {
+                            const token = response.data.jwt;
+                            let config = {
+                                method: 'post',
+                                url: `http://${cr_client_data.cr_server_address_api}/filter/filter_settings/geographic_key?geographic_network_type=${values.geographic_network_type}&continent=${values.continent}&country=${values.country}`,
+                                headers: {
+                                    'Authorization': `Bearer ${token}`
+                                }
+                            };
+                            try {
+                                const response = await axios.request(config);
+                                if (response.status === 200) {
+                                    enqueueSnackbar(`Filter Successfuly Updated, new filter is : ${response.data.new_informations.new_password}`, { variant: 'success' });
+                                }
+                            } catch (error) {
+                                if (error.response) {
+                                    enqueueSnackbar("An error occured on Filter Update : " + error.response.data.code, { variant: 'error' });
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        enqueueSnackbar("An error occured on Authentification : " + error.response.data.code, { variant: 'error' });
+                    }
+                    break;
+                default:
+                    enqueueSnackbar("Invalid Filter Version", { variant: 'error' });
+                    break;            }
         },
     });
 
@@ -939,57 +983,77 @@ export default function Page(props) {
                     setServerOpened(true)
                     enqueueSnackbar("Starting Syncronisation with Server, Please Wait", { variant: 'success' });
                     first_call = false
-                    const network_test = await networkTest(false)
+                    const network_test = { result: { network_type: "N-A", connect_type: "N-A" } }//await networkTest(false)
                     setNetworkStatus({ network_quality_level: network_test.result.network_type, connect_method: network_test.result.connect_type })
                     enqueueSnackbar("Syncronisation Finished", { variant: 'success' });
                 }
                 else {
                     if (status_response.status === 200) {
                         setServerOpened(true)
-                        const network_test = await networkTest(false)
+                        const network_test = { result: { network_type: "N-A", connect_type: "N-A" } }//
                         setNetworkStatus({ network_quality_level: network_test.result.network_type, connect_method: network_test.result.connect_type })
                     }
                     else {
                         setServerOpened(false)
-                        setNetworkStatus({ network_quality_level: "N/A", connect_method: "N/A" })
+                        setNetworkStatus({ network_quality_level: "N-A", connect_method: "N-A" })
                     }
+                }
+                let general_filter = "undefined"
+                const url2 = `http://localhost:5986/filter/filter_settings`;
+                try {
+                    const response2 = await axios.get(url2);
+                    if (response2.status === 200) {
+                        const responseData2 = response2.data;
+                        if (responseData2.output !== undefined) {
+                            general_filter = `N-A/N-A/${responseData2.output.password}/${responseData2.output.pool}`
+                        }
+                    }
+                }
+                catch (error) {
+                    general_filter = "undefined"
                 }
                 const fetchedAccounts = storeGetAccounts();
                 fetchedAccounts.forEach(async (current_account: AccountData) => {
                     let account = { ...current_account };
-                    const url = `http://${cr_client_data.cr_server_address_api}/auth/login`;
-                    const params = {
-                        email: account.email,
-                        password: account.password
-                    };
-                    try {
-                        const response = await axios.post(url, null, { params: params });
-                        if (response.status === 200) {
-                            const token = response.data.jwt;
-                            const url1 = `http://${cr_client_data.cr_server_address_api}/account/filter/filter_settings`;
-                            const headers = {
-                                Authorization: `Bearer ${token}`,
-                            };
-                            try {
-                                const response1 = await axios.get(url1, { headers });
-                                if (response1.status === 200) {
-                                    const responseData = response1.data;
-                                    if (responseData.actual_filter === "NO_FILTER_FOUND") {
-                                        account.source = ""
-                                        account.current_filter = "undefined"
+                    console.log("general_filter", general_filter)
+                    if (network_key_change_method === "V2") {
+                        const url = `http://${cr_client_data.cr_server_address_api}/auth/login`;
+                        const params = {
+                            email: account.email,
+                            password: account.password
+                        };
+                        try {
+                            const response = await axios.post(url, null, { params: params });
+                            if (response.status === 200) {
+                                const token = response.data.jwt;
+                                const url1 = `http://${cr_client_data.cr_server_address_api}/account/filter/filter_settings`;
+                                const headers = {
+                                    Authorization: `Bearer ${token}`,
+                                };
+                                try {
+                                    const response1 = await axios.get(url1, { headers });
+                                    if (response1.status === 200) {
+                                        const responseData = response1.data;
+                                        if (responseData.actual_filter === "NO_FILTER_FOUND") {
+                                            account.source = ""
+                                            account.current_filter = "undefined"
+                                        }
+                                        else {
+                                            account.source = responseData.source;
+                                            account.current_filter = `${responseData.actual_filter.network_type}/${responseData.actual_filter.connect_type}/${responseData.actual_filter.password}/${responseData.actual_filter.pool || 'undefined'}`;
+                                        }
                                     }
-                                    else {
-                                        account.source = responseData.source;
-                                        account.current_filter = `${responseData.actual_filter.network_type}/${responseData.actual_filter.connect_type}/${responseData.actual_filter.password}/${responseData.actual_filter.pool || 'undefined'}`;
-                                    }
+                                } catch (error) {
+                                    account.source = ""
+                                    account.current_filter = "undefined"
                                 }
-                            } catch (error) {
-                                account.source = ""
-                                account.current_filter = "undefined"
                             }
+                        } catch (error) {
+                            account.current_filter = "undefined"
                         }
-                    } catch (error) {
-                        account.current_filter = "undefined"
+                    }
+                    else {
+                        account.current_filter = general_filter
                     }
                     storeAddAccount(account)
                 });
@@ -1266,28 +1330,16 @@ export default function Page(props) {
                                 <Typography style={{ textAlign: "center" }} variant="h6" gutterBottom>Liste des
                                     Comptes</Typography>
                                 <Grid container spacing={1}>
-                                    <Grid item xs={6.5} md={6.5}>
-                                        {server_opened ? <Button variant="contained" endIcon={<NetworkCheck />} onClick={async () => {
-                                            enqueueSnackbar("Trying to Regenerate Network Quality", { variant: 'info' })
-                                            const network_test = await networkTest(true)
-                                            if (network_test.result !== undefined) {
-                                                setNetworkStatus({ network_quality_level: network_test.result.network_type, connect_method: network_test.result.connect_type })
-                                                enqueueSnackbar(`Network quality successfully regenerated`, { variant: 'success' })
-                                            }
-                                            else {
-                                                enqueueSnackbar(`Unable to regenerate Network Quality : ${network_test.error.split(':')[1] || network_test.error}`, { variant: 'error' })
-                                            }
-                                        }}>
-                                            Test Network
-                                        </Button> : <Button variant="contained" endIcon={<NetworkCheck />} disabled>
-                                            Test Network
-                                        </Button>}
-                                    </Grid>
-                                    <Grid item xs={2.5} md={2.5}>
-                                        <Typography style={{ textAlign: "center" }} gutterBottom>{NetworkQualityRender(networkStatus.network_quality_level)} : {networkStatus.network_quality_level}</Typography>
-                                    </Grid>
-                                    <Grid item xs={2.5} md={2.5}>
-                                        <Typography style={{ textAlign: "center" }} gutterBottom>{ConnectMethodRender(networkStatus.connect_method)} : {networkStatus.connect_method}</Typography>
+                                    <Grid item xs={12} md={12}>
+                                        {// @ts-ignore
+                                            network_key_change_method === "V1" ? <Button variant="contained" endIcon={<KeyIcon />} onClick={() => {
+                                                OpenChangeFilterDialog("","","")
+                                            }}>
+                                                Change Network Key
+                                            </Button> : <Button variant="contained" endIcon={<KeyIcon />} disabled>
+                                                Change Network Key
+                                            </Button>
+                                        }
                                     </Grid>
                                 </Grid>
                                 {accounts.length !== 0 ? (
@@ -1310,42 +1362,18 @@ export default function Page(props) {
                                                         <Grid container style={{ minHeight: "10px" }}>
                                                             <Grid item md={2} style={{ textAlign: "left" }}>
                                                                 <IconButton edge="end" disabled>
-                                                                    <AccountCircle color={account.current_filter !== "undefined" ? "primary" : "inherit"} />
+                                                                    <AccountCircle color={"inherit"} />
                                                                 </IconButton></Grid>
                                                             <Grid item md={6}><ListItemText style={{ textAlign: "left" }} primary={account.username} /></Grid>
                                                             <Grid item md={4}>
                                                                 {
                                                                     <Stack direction={"row"}>
-                                                                        {account.current_filter !== "undefined" && account.source === "LOCAL" ? <>
-                                                                            {
-                                                                                account.current_filter.split("/")[0].toLowerCase() === "ANY".toLowerCase() ? (
-                                                                                    <IconButton edge="end" onClick={() => handleSwitchNetworkCheckAccount(account.email, account.password, account.username)}>
-                                                                                        <NetworkCheck color="warning" />
-                                                                                    </IconButton>
-                                                                                ) : (
-                                                                                    <IconButton edge="end" onClick={() => handleSwitchNetworkCheckAccount(account.email, account.password, account.username)}>
-                                                                                        <NetworkCheck color="success" />
-                                                                                    </IconButton>
-                                                                                )
-                                                                            }
-                                                                        </> : <>
-                                                                            <IconButton edge="end" disabled>
-                                                                                <Block />
-                                                                            </IconButton>
-                                                                        </>}
-                                                                        {
-                                                                            account.current_filter !== "undefined" ?
-                                                                                <>
-                                                                                    <IconButton edge="end"
-                                                                                        onClick={() => OpenChangeFilterDialog(account.email, account.password, account.username)}>
-                                                                                        <KeyIcon />
-                                                                                    </IconButton>
-                                                                                </> : <>
-                                                                                    <IconButton edge="end" disabled>
-                                                                                        <Block />
-                                                                                    </IconButton>
-                                                                                </>
-                                                                        }
+                                                                        <IconButton edge="end" disabled>
+                                                                            <Block />
+                                                                        </IconButton>
+                                                                        <IconButton edge="end" disabled>
+                                                                            <Block />
+                                                                        </IconButton>
                                                                         <IconButton edge="end"
                                                                             onClick={() => handleGetIPFromAccount(account.email, account.password, account.username)}>
                                                                             <PermDeviceInformation />
