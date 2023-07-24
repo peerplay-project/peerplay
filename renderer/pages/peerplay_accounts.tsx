@@ -175,14 +175,18 @@ const PasswordKeyForm = ({ handleClose }) => {
     const { enqueueSnackbar } = useSnackbar();
     const validationSchema = Yup.object({
         random_password: Yup.boolean(),
+        allow_cheats: Yup.boolean(),
+        allow_mods: Yup.boolean(),
         network_key: Yup
             .string()
-            .max(32, 'Password exceeds the limit of 32 characters')
+            .max(29, 'Password exceeds the limit of 32 characters')
             .nullable(),
     });
 
     const formik = useFormik({
         initialValues: {
+            allow_cheats: false,
+            allow_mods: false,
             random_password: false,
             network_key: '',
         },
@@ -196,7 +200,7 @@ const PasswordKeyForm = ({ handleClose }) => {
                 case "V1":
                     let config = {
                         method: 'post',
-                        url: `http://localhost:5986/filter/filter_settings/password_key?random_password=${values.random_password}&network_key=${values.network_key}`,
+                        url: `http://localhost:5986/filter/filter_settings/password_key?random_password=${values.random_password}&network_key=${values.network_key}&allow_mods=${values.allow_mods}&allow_cheats=${values.allow_cheats}`,
                     };
                     try {
                         const response = await axios.request(config);
@@ -251,6 +255,10 @@ const PasswordKeyForm = ({ handleClose }) => {
                 <Stack spacing={1}>
                     <FormControlLabel control={<Switch id="random_password"
                         name="random_password" onChange={formik.handleChange} />} label="Use a Random Password" />
+                    <FormControlLabel control={<Switch id="allow_cheats"
+                        name="allow_cheats" onChange={formik.handleChange} />} label="Allow / Use Cheats" />
+                    <FormControlLabel control={<Switch id="allow_mods"
+                        name="allow_mods" onChange={formik.handleChange} />} label="Allow / Use Mods" />
                     <TextField
                         fullWidth
                         id="network_key"
@@ -361,7 +369,8 @@ const GeographicKeyForm = ({ handleClose }) => {
                     break;
                 default:
                     enqueueSnackbar("Invalid Filter Version", { variant: 'error' });
-                    break;            }
+                    break;
+            }
         },
     });
 
@@ -1333,7 +1342,7 @@ export default function Page(props) {
                                     <Grid item xs={12} md={12}>
                                         {// @ts-ignore
                                             network_key_change_method === "V1" ? <Button variant="contained" endIcon={<KeyIcon />} onClick={() => {
-                                                OpenChangeFilterDialog("","","")
+                                                OpenChangeFilterDialog("", "", "")
                                             }}>
                                                 Change Network Key
                                             </Button> : <Button variant="contained" endIcon={<KeyIcon />} disabled>
