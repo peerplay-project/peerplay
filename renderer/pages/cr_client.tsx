@@ -65,16 +65,18 @@ export default function Page(props) {
         'Cannot use Localhost CR_SERVER if Not Opened',
         async function (value) {
           if (value) {
-            return await (await peerplay_cr_server_status(false)).started !== false;
+            return (await peerplay_cr_server_status(false)).started !== false;
           } else {
             if (
-              await (await peerplay_cr_server_status(false)).started === false &&
-              this.parent.cr_server_address === 'localhost:5981'
+              (await peerplay_cr_server_status(false)).started === false &&
+              this.parent.cr_server_address_api === 'localhost:5981'
             ) {
               return false;
             }
+            else {
+              return true;
+            }
           }
-          return true;
         }
       ),
     }),
