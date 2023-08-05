@@ -112,7 +112,7 @@ jobs:
           (Get-Content -Path "electron-builder.yml") | ForEach-Object { $_ -replace "appId: peerplay", "appId: peerplay_dev" } | Set-Content -Path "electron-builder.yml"
           (Get-Content -Path "electron-builder.yml") | ForEach-Object { $_ -replace "Peerplay", "Peerplay_DEV" } | Set-Content -Path "electron-builder.yml"
       - name: Adapt version related files (Mac OS / Linux)
-        if: matrix.os == 'macos-latest' || matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'macos-latest'
         run: |
           sed -i '' "s#export const peerplay_version = 'N/A'#export const peerplay_version = '${{ steps.time.outputs.time }} (DEVELOPPEMENT_CHANNEL)'#g" resources/peerplay_tools/peerplay/tool.js
           sed -i '' "s#0.0.0#${{ steps.time.outputs.year }}.${{ steps.time.outputs.month }}${{ steps.time.outputs.day }}.${{ steps.time.outputs.hours }}${{ steps.time.outputs.minutes }}#g" package.json
