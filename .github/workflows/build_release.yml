@@ -65,7 +65,7 @@ jobs:
           rm -rf resources/peerplay_tools/cr_client/software/windows
           rm -rf resources/peerplay_tools/cr_client/software/linux
       - name: Extract Peerplay CR Client (Linux)
-        if: matrix.os == 'linux-latest'
+        if: matrix.os == 'ubuntu-latest'
         run: |
           mkdir peerplay_CR_client
           unzip artifacts/peerplay-cr-client-build -d peerplay_CR_client
@@ -94,7 +94,7 @@ jobs:
           mkdir resources/peerplay_tools/lan_play/software/macos
           curl -sL -o resources/peerplay_tools/lan_play/software/macos/lan-play https://github.com/spacemeowx2/switch-lan-play/releases/latest/download/lan-play-macos
       - name: Download Latest Switch Lan play Releases (Linux)
-        if: matrix.os == 'linux-latest'
+        if: matrix.os == 'ubuntu-latest'
         run: |
           mkdir resources/peerplay_tools/lan_play/software
           mkdir resources/peerplay_tools/lan_play/software/linux
@@ -106,7 +106,7 @@ jobs:
           (Get-Content -Path "resources/peerplay_tools/peerplay/tool.js") | ForEach-Object { $_ -replace "export const peerplay_version = 'N/A'", "export const peerplay_version = '${{ inputs.peerplay_version }}'" } | Set-Content -Path "resources/peerplay_tools/peerplay/tool.js"
           (Get-Content -Path "resources/peerplay_tools/lan_play/tool.js") | ForEach-Object { $_ -replace "export const lan_play_version = 'N/A'", "export const lan_play_version = '${{ inputs.lan_play_version  }}'" } | Set-Content -Path "resources/peerplay_tools/lan_play/tool.js"
       - name: Adapt version related files (Mac OS / Linux)
-        if: matrix.os == 'macos-latest' || matrix.os == 'linux-latest'
+        if: matrix.os == 'macos-latest' || matrix.os == 'ubuntu-latest'
         run: |
           sed -i "s/export const peerplay_version = 'N\/A'/export const peerplay_version = '${{ inputs.peerplay_version }}'/g" resources/peerplay_tools/peerplay/tool.js
           sed -i "s/export const lan_play_version = 'N\/A'/export const lan_play_version = '${{ inputs.lan_play_version }}'/g" resources/peerplay_tools/lan_play/tool.js
