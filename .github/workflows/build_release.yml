@@ -1,9 +1,22 @@
 name: Build Peerplay
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - '*'
+    inputs:
+      peerplay_version:
+        description: 'Peerplay General version'
+        required: true
+        default: ''
+        type: string
+      lan_play_version:
+        description: 'Lan Play Client Release version'
+        required: true
+        default: '0.2.3'
+        type: string
+      pre_release:
+        description: 'Is this version is a pre-release'
+        required: true
+        default: false
+        type: boolean
 jobs:
   build:
     runs-on: ${{ matrix.os }}
@@ -13,16 +26,6 @@ jobs:
         os: [windows-latest, macos-latest, ubuntu-latest]
 
     steps:
-      - name: Get Date and Time Of Build (Code Model)
-        id: time
-        uses: Kaven-Universe/github-action-current-date-time@v1
-        with:
-          format: "DD/MM/YYYY HH:mm"
-      - name: Get Date and Time Of Build (File Model)
-        id: time_file
-        uses: Kaven-Universe/github-action-current-date-time@v1
-        with:
-          format: "DD MM YYYY HH mm"
       - name: Checkout repository
         uses: actions/checkout@v2
 
@@ -35,7 +38,6 @@ jobs:
         run: |
           npm install
           mkdir artifacts
-      ## Download Latest Peerplay Resources (CR Client and CR Server)
       - name: Download Peerplay CR Client Artifact
         run: |
           cd artifacts
@@ -46,8 +48,6 @@ jobs:
           cd artifacts
           curl -sLJO "https://nightly.link/peerplay-project/peerplay_CR_server/workflows/build/master-peerplay/peerplay-cr-server-build.zip"
           cd ..
-
-      ## Extract Peerplay CR Client
       - name: Extract Peerplay CR Client (Windows)
         if: matrix.os == 'windows-latest'
         run: |
@@ -72,8 +72,6 @@ jobs:
           cp -r peerplay_CR_client/software resources/peerplay_tools/cr_client
           rm -rf resources/peerplay_tools/cr_client/software/windows
           rm -rf resources/peerplay_tools/cr_client/software/macos
-
-      ## Extract Peerplay CR Server
       - name: Extract Peerplay CR Server
         run: |
           mkdir peerplay_CR_server
@@ -82,8 +80,7 @@ jobs:
           cd ..
           unzip artifacts/peerplay-cr-server-build -d peerplay_CR_server
           cp -r peerplay_CR_server resources/peerplay_tools/cr_server/software
-
-      ## Download Switch Lan play    
+          
       - name: Download Latest Switch Lan play Release (Windows)
         if: matrix.os == 'windows-latest'
         run: |
@@ -103,34 +100,28 @@ jobs:
           mkdir resources/peerplay_tools/lan_play/software/linux
           curl -sL -o resources/peerplay_tools/lan_play/software/linux/lan-play https://github.com/spacemeowx2/switch-lan-play/releases/latest/download/lan-play-linux
 
-      ## Adapt version related files
       - name: Adapt version related files (Windows)
         if: matrix.os == 'windows-latest'
         run: |
-          (Get-Content -Path "resources/peerplay_tools/peerplay/tool.js") | ForEach-Object { $_ -replace "export const peerplay_version = 'N/A'", "export const peerplay_version = '${{ steps.time.outputs.time }} (DEVELOPPEMENT_CHANNEL)'" } | Set-Content -Path "resources/peerplay_tools/peerplay/tool.js"
-          (Get-Content -Path "package.json") | ForEach-Object { $_ -replace "0.0.0", "${{ steps.time.outputs.year }}.${{ steps.time.outputs.month }}${{ steps.time.outputs.day }}.${{ steps.time.outputs.hours }}${{ steps.time.outputs.minutes }}" } | Set-Content -Path "package.json"   
-          (Get-Content -Path "electron-builder.yml") | ForEach-Object { $_ -replace "appId: peerplay", "appId: peerplay_dev" } | Set-Content -Path "electron-builder.yml"
-          (Get-Content -Path "electron-builder.yml") | ForEach-Object { $_ -replace "Peerplay", "Peerplay_DEV" } | Set-Content -Path "electron-builder.yml"
+          (Get-Content -Path "resources/peerplay_tools/peerplay/tool.js") | ForEach-Object { $_ -replace "export const peerplay_version = 'N/A'", "export const peerplay_version = '${{ inputs.peerplay_version }}'" } | Set-Content -Path "resources/peerplay_tools/peerplay/tool.js"
+          (Get-Content -Path "resources/peerplay_tools/lan_play/tool.js") | ForEach-Object { $_ -replace "export const lan_play_version = 'N/A'", "export const lan_play_version = '${{ inputs.lan_play_version  }}'" } | Set-Content -Path "resources/peerplay_tools/lan_play/tool.js"
       - name: Adapt version related files (Mac OS / Linux)
         if: matrix.os == 'macos-latest' || matrix.os == 'linux-latest'
         run: |
-          sed -i "s/export const peerplay_version = 'N\/A'/export const peerplay_version = '${{ steps.time.outputs.time }} (DEVELOPPEMENT_CHANNEL)'/g" resources/peerplay_tools/peerplay/tool.js
-          sed -i "s/0.0.0/${{ steps.time.outputs.time }}/g" package.json
-          sed -i "s/appId: peerplay/appId: peerplay_dev/g" electron-builder.yml
-          sed -i "s/Peerplay/Peerplay_DEV/g" electron-builder.yml
-
-      ## Build Application with NPM   
+          sed -i "s/export const peerplay_version = 'N\/A'/export const peerplay_version = '${{ inputs.peerplay_version }}'/g" resources/peerplay_tools/peerplay/tool.js
+          sed -i "s/export const lan_play_version = 'N\/A'/export const lan_play_version = '${{ inputs.lan_play_version }}'/g" resources/peerplay_tools/lan_play/tool.js
+      
       - name: Build application
         run: npm run build
 
-      ## Find and Rename Artifact Files
+      ## Archive Application
       - name: Find artifact file (Windows)
         id: select_file_windows
         if: matrix.os == 'windows-latest'
         run: |
             $default_file = Get-ChildItem -Path dist -Filter "*.exe" -File | Select-Object -First 1
-            ren $default_file Peerplay_DEV-Setup-${{ steps.time_file.outputs.time }}.exe
-            echo "::set-output name=artifact_file::$(Peerplay_DEV-Setup-${{ steps.time_file.outputs.time }}.exe)"
+            ren $default_file Peerplay-Setup-Windows.exe
+            echo "::set-output name=artifact_file::$(Peerplay-Setup-Windows.exe)"
       - name: Upload artifact (Windows)
         uses: actions/upload-artifact@v2
         if: matrix.os == 'windows-latest'
@@ -144,8 +135,8 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: |
             default_file=$(find dist -name '*.dmg' -type f | head -n 1)
-            mv $default_file Peerplay_DEV-Setup-${{ steps.time_file.outputs.time }}.dmg
-            echo "::set-output name=artifact_file::Peerplay_DEV-Setup-${{ steps.time_file.outputs.time }}.dmg"
+            mv $default_file Peerplay-Setup-MacOS.dmg
+            echo "::set-output name=artifact_file::Peerplay-Setup-MacOS.dmg"
       - name: Upload artifact (Mac OS)
         uses: actions/upload-artifact@v2
         if: matrix.os == 'macos-latest'
@@ -159,8 +150,8 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
             default_file=$(find dist -name '*.AppImage' -type f | head -n 1)
-            mv $default_file Peerplay_DEV-Setup-${{ steps.time_file.outputs.time }}.AppImage
-            echo "::set-output name=artifact_file::Peerplay_DEV-Setup-${{ steps.time_file.outputs.time }}.AppImage"
+            mv $default_file Peerplay-Setup-Linux.AppImage
+            echo "::set-output name=artifact_file::Peerplay-Setup-Linux.AppImage"
       - name: Upload artifact (Linux)
         uses: actions/upload-artifact@v2
         if: matrix.os == 'ubuntu-latest'
@@ -168,3 +159,29 @@ jobs:
             name: Peerplay-Setup-linux-latest
             path: ${{ steps.select_file_linux.outputs.artifact_file }}
             if-no-files-found: error
+  release:
+    runs-on: ubuntu-latest
+    needs: build
+    strategy:
+      matrix:
+        platform: [linux, windows, macos]
+    steps:
+      - name: Create download directory
+        run: mkdir peerplay_setups
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: Peerplay-Setup-${{ matrix.platform }}-latest
+          path: peerplay_setups/
+      - name: Create Release
+        id: create
+        uses: softprops/action-gh-release@v1
+        with:
+          prerelease: ${{ inputs.pre_release }}
+          tag_name: ${{ inputs.peerplay_version }}
+          files: |
+            peerplay_setups/Peerplay-Setup-windows.exe
+            peerplay_setups/Peerplay-Setup-linux.AppImage
+            peerplay_setups/Peerplay-Setup-macos.dmg
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
