@@ -54,8 +54,8 @@ jobs:
           mkdir peerplay_CR_client
           unzip artifacts/peerplay-cr-client-build -d peerplay_CR_client
           cp -r peerplay_CR_client/software resources/peerplay_tools/cr_client
-          rd /s /q resources/peerplay_tools/cr_client/software/linux
-          rd /s /q resources/peerplay_tools/cr_client/software/macos
+          Remove-Item -Recurse -Force resources/peerplay_tools/cr_client/software/linux
+          Remove-Item -Recurse -Force resources/peerplay_tools/cr_client/software/macos
       - name: Extract Peerplay CR Client (MacOS)
         if: matrix.os == 'macos-latest'
         run: |
