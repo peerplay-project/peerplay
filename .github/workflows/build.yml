@@ -22,7 +22,7 @@ jobs:
         id: time_file
         uses: Kaven-Universe/github-action-current-date-time@v1
         with:
-          format: "DD MM YYYY HH mm"
+          format: "DD_MM_YYYY_HH_mm"
       - name: Checkout repository
         uses: actions/checkout@v2
 
@@ -152,7 +152,7 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: |
             default_file=$(find dist -name '*.dmg' -type f | head -n 1)
-            mv $default_file Peerplay_DEV-Setup-${{ steps.time_file.outputs.time }}.dmg
+            mv $default_file 'Peerplay_DEV-Setup-${{ steps.time_file.outputs.time }}.dmg'
             echo "::set-output name=artifact_file::Peerplay_DEV-Setup-${{ steps.time_file.outputs.time }}.dmg"
       - name: Upload artifact (Mac OS)
         uses: actions/upload-artifact@v2
