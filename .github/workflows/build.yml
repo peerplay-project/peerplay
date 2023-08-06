@@ -103,7 +103,8 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: |
           (Get-Content -Path "resources/peerplay_tools/peerplay/tool.js") | ForEach-Object { $_ -replace "export const peerplay_version = 'N/A'", "export const peerplay_version = '${{ steps.time.outputs.time }} (DEVELOPPEMENT_CHANNEL)'" } | Set-Content -Path "resources/peerplay_tools/peerplay/tool.js"
-          (Get-Content -Path "package.json") | ForEach-Object { $_ -replace "0.0.0", "${{ steps.time.outputs.year }}.${{ steps.time.outputs.month }}${{ steps.time.outputs.day }}.${{ steps.time.outputs.hours }}${{ steps.time.outputs.minutes }}" } | Set-Content -Path "package.json"   
+          (Get-Content -Path "package.json") | ForEach-Object { $_ -replace "0.0.0", "${{ steps.time.outputs.year }}.${{ steps.time.outputs.month }}${{ steps.time.outputs.day }}.${{ steps.time.outputs.hours }}${{ steps.time.outputs.minutes }}" } | Set-Content -Path "package.json"
+          (Get-Content -Path "package.json") | ForEach-Object { $_ -replace "peerplay", "peerplay_DEV" } | Set-Content -Path "package.json"  
           (Get-Content -Path "electron-builder.yml") | ForEach-Object { $_ -replace "appId: peerplay", "appId: peerplay_dev" } | Set-Content -Path "electron-builder.yml"
           (Get-Content -Path "electron-builder.yml") | ForEach-Object { $_ -replace "Peerplay", "Peerplay_DEV" } | Set-Content -Path "electron-builder.yml"
       - name: Adapt version related files (Mac OS)
@@ -131,7 +132,7 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: |
           $default_file = Get-ChildItem -Path dist -Filter "*.exe" -File | Select-Object -First 1
-          $new_file_name = "Peerplay_DEV-Setup-${{ matrix.os }}.exe"
+          $new_file_name = "Peerplay_DEV-Setup-Windows.exe"
           $new_file_path = Join-Path -Path $default_file.Directory.FullName -ChildPath $new_file_name
           Rename-Item -Path $default_file.FullName -NewName $new_file_name
           echo "windows_artifact_file=$new_file_path" >> $env:GITHUB_ENV
@@ -139,7 +140,7 @@ jobs:
         uses: actions/upload-artifact@v2
         if: matrix.os == 'windows-latest'
         with:
-            name: Peerplay-Setup-${{ matrix.os }}
+            name: Peerplay_Setup-Windows
             path: ${{ env.windows_artifact_file }}
             if-no-files-found: error
       # Mac OS
@@ -147,13 +148,13 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: |
             default_file=$(find dist -name '*.dmg' -type f | head -n 1)
-            mv $default_file 'Peerplay_DEV-Setup-${{ matrix.os }}.dmg'
-            echo "macos_artifact_file=Peerplay_DEV-Setup-${{ matrix.os }}.dmg" >> "$GITHUB_ENV"
+            mv $default_file 'Peerplay_DEV-Setup-MacOS.dmg'
+            echo "macos_artifact_file=Peerplay_DEV-Setup-MacOS.dmg" >> "$GITHUB_ENV"
       - name: Upload artifact (Mac OS)
         uses: actions/upload-artifact@v2
         if: matrix.os == 'macos-latest'
         with:
-            name: Peerplay_Setup_${{ matrix.os }}
+            name: Peerplay_Setup-MacOS
             path: ${{ env.macos_artifact_file }}
             if-no-files-found: error
       # Linux
@@ -161,12 +162,12 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
             default_file=$(find dist -name '*.AppImage' -type f | head -n 1)
-            mv $default_file Peerplay_DEV-Setup-linux-latest.AppImage
-            echo "linux_artifact_file=Peerplay_DEV-Setup-linux-latest.AppImage" >> "$GITHUB_ENV"
+            mv $default_file Peerplay_DEV-Setup-Linux.AppImage
+            echo "linux_artifact_file=Peerplay_DEV-Setup-Linux.AppImage" >> "$GITHUB_ENV"
       - name: Upload artifact (Linux)
         uses: actions/upload-artifact@v2
         if: matrix.os == 'ubuntu-latest'
         with:
-            name: Peerplay_Setup_${{ matrix.os }}
+            name: Peerplay_Setup-Linux
             path: ${{ env.linux_artifact_file }}
             if-no-files-found: error
