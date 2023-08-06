@@ -128,46 +128,43 @@ jobs:
 
       ## Find and Rename Artifact Files
       - name: Find artifact file (Windows)
-        id: select_file_windows
         if: matrix.os == 'windows-latest'
         run: |
             $default_file = Get-ChildItem -Path dist -Filter "*.exe" -File | Select-Object -First 1
             ren $default_file Peerplay_DEV-Setup-${{ matrix.os }}.exe
-            echo "::set-output name=artifact_file::$(Peerplay_DEV-Setup-${{ matrix.os }}.exe)"
+            echo "windows_artifact_file=Peerplay_DEV-Setup-${{ matrix.os }}.exe" >> "$GITHUB_ENV"
       - name: Upload artifact (Windows)
         uses: actions/upload-artifact@v2
         if: matrix.os == 'windows-latest'
         with:
             name: Peerplay-Setup-${{ matrix.os }}
-            path: ${{ steps.select_file_windows.outputs.artifact_file }}
+            path: ${{ env.windows_artifact_file }}
             if-no-files-found: error
       # Mac OS
       - name: Find artifact file (MacOS)
-        id: select_file_macos
         if: matrix.os == 'macos-latest'
         run: |
             default_file=$(find dist -name '*.dmg' -type f | head -n 1)
             mv $default_file 'Peerplay_DEV-Setup-${{ matrix.os }}.dmg'
-            echo "::set-output name=artifact_file::Peerplay_DEV-Setup-${{ matrix.os }}.dmg"
+            echo "macos_artifact_file=Peerplay_DEV-Setup-${{ matrix.os }}.dmg" >> "$GITHUB_ENV"
       - name: Upload artifact (Mac OS)
         uses: actions/upload-artifact@v2
         if: matrix.os == 'macos-latest'
         with:
             name: Peerplay_Setup_${{ matrix.os }}
-            path: ${{ steps.select_file_macos.outputs.artifact_file }}
+            path: ${{ env.macos_artifact_file }}
             if-no-files-found: error
       # Linux
       - name: Find artifact file (Linux)
-        id: select_file_linux
         if: matrix.os == 'ubuntu-latest'
         run: |
             default_file=$(find dist -name '*.AppImage' -type f | head -n 1)
             mv $default_file Peerplay_DEV-Setup-linux-latest.AppImage
-            echo "::set-output name=artifact_file::Peerplay_DEV-Setup-linux-latest.AppImage"
+            echo "linux_artifact_file=Peerplay_DEV-Setup-linux-latest.AppImage" >> "$GITHUB_ENV"
       - name: Upload artifact (Linux)
         uses: actions/upload-artifact@v2
         if: matrix.os == 'ubuntu-latest'
         with:
             name: Peerplay_Setup_${{ matrix.os }}
-            path: ${{ steps.select_file_linux.outputs.artifact_file }}
+            path: ${{ env.linux_artifact_file }}
             if-no-files-found: error
