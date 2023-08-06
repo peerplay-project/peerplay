@@ -3,8 +3,6 @@ import { execFile } from "child_process";
 import path from "path";
 import os from "os";
 
-export const peerplay_cr_client_version = "1.0.0";
-
 import { console_db_patched_app, console_db_legacy_app } from "./console_db";
 
 let started = false;
