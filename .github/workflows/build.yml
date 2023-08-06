@@ -130,9 +130,11 @@ jobs:
       - name: Find artifact file (Windows)
         if: matrix.os == 'windows-latest'
         run: |
-            $default_file = Get-ChildItem -Path dist -Filter "*.exe" -File | Select-Object -First 1
-            ren $default_file Peerplay_DEV-Setup-${{ matrix.os }}.exe
-            echo "windows_artifact_file=Peerplay_DEV-Setup-${{ matrix.os }}.exe" >> "$GITHUB_ENV"
+          $default_file = Get-ChildItem -Path dist -Filter "*.exe" -File | Select-Object -First 1
+          $new_file_name = "Peerplay_DEV-Setup-${{ matrix.os }}.exe"
+          $new_file_path = Join-Path -Path $default_file.Directory.FullName -ChildPath $new_file_name
+          Rename-Item -Path $default_file.FullName -NewName $new_file_name
+          echo "windows_artifact_file=$new_file_path" >> $env:GITHUB_ENV
       - name: Upload artifact (Windows)
         uses: actions/upload-artifact@v2
         if: matrix.os == 'windows-latest'
