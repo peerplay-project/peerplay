@@ -2,7 +2,7 @@ import os from 'os'
 import path from 'path'
 import fs from 'fs'
 import { execFile } from 'child_process'
-export const lan_play_version = "0.2.3"
+export const lan_play_version = 'N/A'
 let started = false
 let child_process = undefined
 const isProd = process.env.NODE_ENV === 'production';

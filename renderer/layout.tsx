@@ -24,9 +24,9 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import InfoIcon from '@mui/icons-material/Info';
 import { useRouter } from 'next/router'
 import { Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button } from '@mui/material';
-import { peerplay_ui_version } from '../resources/peerplay_tools/peerplay_ui/tool'
-import { peerplay_cr_client_status, peerplay_cr_client_version } from '../resources/peerplay_tools/cr_client/tool'
-import { peerplay_cr_server_status, peerplay_cr_server_version } from '../resources/peerplay_tools/cr_server/tool'
+import { peerplay_version } from '../resources/peerplay_tools/peerplay/tool'
+import { peerplay_cr_client_status } from '../resources/peerplay_tools/cr_client/tool'
+import { peerplay_cr_server_status } from '../resources/peerplay_tools/cr_server/tool'
 import { lan_play_status, lan_play_version } from '../resources/peerplay_tools/lan_play/tool'
 import { ManageAccounts } from "@mui/icons-material";
 
@@ -170,13 +170,7 @@ export default function Layout({ children }) {
             <Dialog open={openAboutDialog} onClose={handleCloseAboutDialog}>
                 <DialogTitle>About Peerplay</DialogTitle>
                 <DialogContent>
-                    <DialogContentText>{"Peerplay GUI Version : " + peerplay_ui_version}</DialogContentText>
-                </DialogContent>
-                <DialogContent>
-                    <DialogContentText>{"Peerplay CR_CLIENT Version : " + peerplay_cr_client_version}</DialogContentText>
-                </DialogContent>
-                <DialogContent>
-                    <DialogContentText>{"Peerplay CR_SERVER Version : " + peerplay_cr_server_version}</DialogContentText>
+                    <DialogContentText>{"Peerplay Version : " + peerplay_version}</DialogContentText>
                 </DialogContent>
                 <DialogContent>
                     <DialogContentText>{"Lan Play Version : " + lan_play_version}</DialogContentText>
