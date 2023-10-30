@@ -23,7 +23,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
+        os: [windows-latest, ubuntu-latest]
 
     steps:
       - name: Checkout repository
@@ -171,7 +171,7 @@ jobs:
     needs: build
     strategy:
       matrix:
-        platform: [Linux, Windows, MacOS]
+        platform: [Linux, Windows]
     steps:
       - name: Create download directory
         run: mkdir peerplay_setups
@@ -189,6 +189,6 @@ jobs:
           files: |
             peerplay_setups/Peerplay_Setup-Windows.exe
             peerplay_setups/Peerplay_Setup-Linux.AppImage
-            peerplay_setups/Peerplay_Setup-MacOS.dmg
+          #peerplay_setups/Peerplay_Setup-MacOS.dmg
         env:
           GITHUB_TOKEN: ${{ github.token }}
